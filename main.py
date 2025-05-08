@@ -33,6 +33,7 @@ name = ''
 
 class Client(StatesGroup):
     calc_price = State()
+    cours = State()
 
 
 @dp.message(Command("start"), StateFilter(None))
@@ -60,6 +61,20 @@ async def calc_price(callback: CallbackQuery, state: FSMContext):
                          reply_markup=get_ikb_start())
 
 
+@dp.callback_query(F.data == 'make_order')
+async def quest(callback: CallbackQuery):
+    await callback.message.delete()
+    await callback.message.answer('А здесь сделаем оформление заказа!',
+                                  reply_markup=ikb_come_home())
+
+
+@dp.callback_query(F.data == 'often_quest')
+async def quest(callback: CallbackQuery):
+    await callback.message.delete()
+    await callback.message.answer('Здесь будут ответы на частые вопросы))',
+                                  reply_markup=ikb_come_home())
+
+
 @dp.callback_query(F.data == 'calc')
 async def calc_price(callback: CallbackQuery):
     await callback.message.delete()
@@ -83,15 +98,38 @@ async def res_calc(callback: CallbackQuery, state: FSMContext):
 @dp.message(StateFilter(Client.calc_price))
 async def res_calc2(message: Message, state: FSMContext):
     global name
-    price = int(message.text)
-    cours = 11.6
-    comission = get_price_comission(name[5:])[0]
-    res = price * cours + 1000 + comission
-    await message.bot.send_message(chat_id=message.from_user.id,
-                                   text=f'💰 Итоговая стоимость товара <b>{res} рублей</b>\n'
-                                         f'Комиссия сервиса: <b>1000 рублей</b> (уже включена в итоговую стоимость)\n\n'
-                                         f'📊 Курс юаня: <b>{cours}</b>',
-                                    parse_mode='HTML')
+    if message.text.isdigit():
+        price = int(message.text)
+        cours = get_cours()[0]
+        comission = get_price_comission(name[5:])[0]
+        res = price * cours + 1000 + comission
+        await message.bot.send_message(chat_id=message.from_user.id,
+                                       text=f'💰 Итоговая стоимость товара <b>{res} рублей</b>\n\n'
+                                            f'Комиссия сервиса: <b>1000 рублей</b> (уже включена в итоговую стоимость)\n\n'
+                                            f'Доставка на выбранный тип товара: <b>{comission} рублей</b>\n\n'
+                                            f'📊 Курс юаня: <b>{cours}</b>',
+                                       parse_mode='HTML',
+                                       reply_markup=ikb_come_home())
+        await state.clear()
+    else:
+        await message.answer('Вы ввели не стоимость, попробуйте ещё раз!')
+
+
+@dp.message(Command('admin'))
+async def admin(message: Message, state: FSMContext):
+    if message.from_user.username == 'nmnn96' or message.from_user.username == 'lottematte':
+        await message.answer('Напиши новый курс юаня вещественным числом через точку:')
+        await state.set_state(Client.cours)
+    else:
+        return
+
+
+@dp.message(StateFilter(Client.cours))
+async def admin(message: Message, state: FSMContext):
+    new_cours = message.text
+    change_cours(new_cours)
+    await message.answer(f'Курс успешно изменён!\n\n'
+                         f'Новый курс: {get_cours()[0]}')
     await state.clear()
 
 
