@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 import os
 from scripts.regsetup import description
 
+load_dotenv()
 token = os.getenv('token')
 proxy_url = os.getenv('proxy_url')
 
