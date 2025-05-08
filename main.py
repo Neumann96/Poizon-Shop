@@ -8,12 +8,15 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import FSInputFile
 from keyboards import *
 from sql_query import *
-
+from dotenv import load_dotenv
+import os
 from scripts.regsetup import description
 
-proxy_url = 'http://proxy.server:3128'
+token = os.getenv('token')
+proxy_url = os.getenv('proxy_url')
+
 storage = MemoryStorage()
-bot = Bot(token='7690649283:AAEHAtp1I73ksF14zzO9IBHdeBYl3Do_hrU', proxy=proxy_url)
+bot = Bot(token=token, proxy=proxy_url)
 dp = Dispatcher(storage=storage)
 
 start_message = '''
