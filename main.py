@@ -10,10 +10,9 @@ from keyboards import *
 from sql_query import *
 from dotenv import load_dotenv
 import os
-from scripts.regsetup import description
 
 load_dotenv()
-token = os.getenv('token')
+token = os.getenv('token_test')
 proxy_url = os.getenv('proxy_url')
 
 storage = MemoryStorage()
@@ -130,11 +129,29 @@ async def admin(message: Message, state: FSMContext):
 
 @dp.message(StateFilter(Client.cours))
 async def admin(message: Message, state: FSMContext):
-    new_cours = message.text
-    change_cours(new_cours)
-    await message.answer(f'Курс успешно изменён!\n\n'
-                         f'Новый курс: {get_cours()[0]}')
-    await state.clear()
+    # if '.' in message.text:
+    #     if message.text.replace('.', ',', 1).isdigit():
+    #         new_cours = message.text
+    #         change_cours(new_cours)
+    #         await message.answer(f'Курс успешно изменён!\n\n'
+    #                              f'Новый курс: {get_cours()[0]}')
+    #         await state.clear()
+    #     else:
+    #         await message.answer('Вы ввели не число')
+    # else:
+    #     await message.answer('Вы ввели не вещественное число')
+
+    try:
+        n = float(message.text)
+        if not n.is_integer():
+            change_cours(n)
+            await message.answer(f'Курс успешно изменён!\n\n'
+                                 f'Новый курс: {get_cours()[0]}')
+            await state.clear()
+        else:
+            await message.answer('Вы ввели не вещественное число')
+    except ValueError:
+        await message.answer('Вы ввели не вещественное число')
 
 
 if __name__ == '__main__':
