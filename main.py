@@ -112,7 +112,7 @@ async def res_calc2(message: Message, state: FSMContext):
                                             f'Доставка на выбранный тип товара: <b>{comission} рублей</b>\n\n'
                                             f'📊 Курс юаня: <b>{cours}</b>',
                                        parse_mode='HTML',
-                                       reply_markup=ikb_come_home())
+                                       reply_markup=ikb_home_order())
         await state.clear()
     else:
         await message.answer('Вы ввели не стоимость, попробуйте ещё раз!')
