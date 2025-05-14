@@ -45,3 +45,18 @@ def get_ikb_kat():
     builder.adjust(1, 2, 1, 2, 1, 2, 1, 1)
     return builder.as_markup()
 
+
+def ikb_often_question():
+    builder = InlineKeyboardBuilder()
+    builder.add(InlineKeyboardButton(text='Какие сроки доставки?', callback_data='time_delivery'),
+                InlineKeyboardButton(text='Какой транспортной компанией осуществляется отправка по россии?', callback_data='trans_comp'),
+                InlineKeyboardButton(text='Как отследить заказ?', callback_data='track_order'),
+                InlineKeyboardButton(text='🏠На главную', callback_data='home'))
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def ikb_come_quest():
+    builder = InlineKeyboardBuilder()
+    builder.add(InlineKeyboardButton(text='🔙 К вопросам', callback_data='often_quest'))
+    return builder.as_markup()

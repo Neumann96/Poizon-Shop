@@ -74,8 +74,31 @@ async def quest(callback: CallbackQuery):
 @dp.callback_query(F.data == 'often_quest')
 async def quest(callback: CallbackQuery):
     await callback.message.delete()
-    await callback.message.answer('Здесь будут ответы на частые вопросы))',
-                                  reply_markup=ikb_come_home())
+    await callback.message.answer('❓Есть вопросы? Возможно, ответ уже ждёт вас здесь.',
+                                  reply_markup=ikb_often_question())
+
+
+@dp.callback_query(F.data == 'time_delivery')
+async def quest(callback: CallbackQuery):
+    await callback.message.delete()
+    await callback.message.answer('Доставка занимает от 3 до 5 недель с момента прибытия товара '
+                                  'на склад в Китае. Срок может незначительно варьироваться в зависимости от вашего города.',
+                                  reply_markup=ikb_come_quest())
+
+
+@dp.callback_query(F.data == 'trans_comp')
+async def quest(callback: CallbackQuery):
+    await callback.message.delete()
+    await callback.message.answer('По России все заказы доставляются через Почту России.',
+                                  reply_markup=ikb_come_quest())
+
+
+@dp.callback_query(F.data == 'track_order')
+async def quest(callback: CallbackQuery):
+    await callback.message.delete()
+    await callback.message.answer('Как только посылка будет передана в доставку по '
+                                  'России, вы получите SMS-уведомление с информацией для отслеживания.',
+                                  reply_markup=ikb_come_quest())
 
 
 @dp.callback_query(F.data == 'calc')
@@ -129,18 +152,6 @@ async def admin(message: Message, state: FSMContext):
 
 @dp.message(StateFilter(Client.cours))
 async def admin(message: Message, state: FSMContext):
-    # if '.' in message.text:
-    #     if message.text.replace('.', ',', 1).isdigit():
-    #         new_cours = message.text
-    #         change_cours(new_cours)
-    #         await message.answer(f'Курс успешно изменён!\n\n'
-    #                              f'Новый курс: {get_cours()[0]}')
-    #         await state.clear()
-    #     else:
-    #         await message.answer('Вы ввели не число')
-    # else:
-    #     await message.answer('Вы ввели не вещественное число')
-
     try:
         n = float(message.text)
         if not n.is_integer():
