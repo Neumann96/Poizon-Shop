@@ -49,7 +49,7 @@ def get_ikb_kat():
 def ikb_often_question():
     builder = InlineKeyboardBuilder()
     builder.add(InlineKeyboardButton(text='Какие сроки доставки?', callback_data='time_delivery'),
-                InlineKeyboardButton(text='Какой транспортной компанией осуществляется отправка по россии?', callback_data='trans_comp'),
+                InlineKeyboardButton(text='Какой компанией осуществляется отправка по россии?', callback_data='trans_comp'),
                 InlineKeyboardButton(text='Как отследить заказ?', callback_data='track_order'),
                 InlineKeyboardButton(text='🏠На главную', callback_data='home'))
     builder.adjust(1)

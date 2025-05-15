@@ -6,6 +6,8 @@ from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKe
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import FSInputFile
+from aiohttp.log import client_logger
+
 from keyboards import *
 from sql_query import *
 from dotenv import load_dotenv
@@ -18,6 +20,8 @@ proxy_url = os.getenv('proxy_url')
 storage = MemoryStorage()
 bot = Bot(token=token, proxy=proxy_url)
 dp = Dispatcher(storage=storage)
+
+calc_text = '📊 В нашем калькуляторе Вы можете сделать расчет стоимости товара с доставкой до России.\n\n💬 Выберите подходящий раздел:'
 
 start_message = '''
 😉 <b>Добро пожаловать в бот группы <u>logistic by pumba</u>!</b>
@@ -37,6 +41,7 @@ name = ''
 class Client(StatesGroup):
     calc_price = State()
     cours = State()
+    order_kat = State()
 
 
 @dp.message(Command("start"), StateFilter(None))
@@ -65,10 +70,24 @@ async def calc_price(callback: CallbackQuery, state: FSMContext):
 
 
 @dp.callback_query(F.data == 'make_order')
-async def quest(callback: CallbackQuery):
+async def quest(callback: CallbackQuery, state: FSMContext):
     await callback.message.delete()
-    await callback.message.answer('А здесь сделаем оформление заказа!',
-                                  reply_markup=ikb_come_home())
+    await callback.message.answer(calc_text,
+                                  reply_markup=get_ikb_kat())
+    await state.set_state(Client.order_kat)
+
+
+@dp.callback_query(lambda c: c.data.startswith("calc_"), StateFilter(Client.order_kat))
+async def order_kat(callback: CallbackQuery, state: FSMContext):
+    photo = FSInputFile("example.PNG")
+    await callback.message.delete()
+    await callback.bot.send_photo(chat_id=callback.message.chat.id,
+                                  photo=photo,
+                                  caption=f'<b>🖼Пожалуйста, вставьте фото товара, как показано на примере:</b>'
+                                          f'\n\n В РАЗРАБОТКЕ',
+                                  parse_mode='HTML')
+    await callback.answer()
+    await state.clear() # ТУТ ОСТАНОВИЛИСЬ
 
 
 @dp.callback_query(F.data == 'often_quest')
@@ -105,8 +124,7 @@ async def quest(callback: CallbackQuery):
 async def calc_price(callback: CallbackQuery):
     await callback.message.delete()
     await callback.bot.send_message(chat_id=callback.from_user.id,
-                                    text='📊 В нашем калькуляторе Вы можете сделать расчет стоимости товара с доставкой до России.\n\n'
-                                         '💬 Выберите подходящий раздел:',
+                                    text=calc_text,
                                     reply_markup=get_ikb_kat())
     await callback.answer()
 
