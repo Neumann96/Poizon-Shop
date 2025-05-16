@@ -42,6 +42,7 @@ class Client(StatesGroup):
     calc_price = State()
     cours = State()
     order_kat = State()
+    picture = State()
 
 
 @dp.message(Command("start"), StateFilter(None))
@@ -80,14 +81,29 @@ async def quest(callback: CallbackQuery, state: FSMContext):
 @dp.callback_query(lambda c: c.data.startswith("calc_"), StateFilter(Client.order_kat))
 async def order_kat(callback: CallbackQuery, state: FSMContext):
     photo = FSInputFile("example.PNG")
+    await state.update_data(kat=callback.data)
     await callback.message.delete()
     await callback.bot.send_photo(chat_id=callback.message.chat.id,
                                   photo=photo,
-                                  caption=f'<b>🖼Пожалуйста, вставьте фото товара, как показано на примере:</b>'
-                                          f'\n\n В РАЗРАБОТКЕ',
+                                  caption=f'<b>🖼Пожалуйста, вставьте фото товара, как показано на примере:</b>',
                                   parse_mode='HTML')
     await callback.answer()
-    await state.clear() # ТУТ ОСТАНОВИЛИСЬ
+    await state.set_state(Client.picture)
+
+
+@dp.message(StateFilter(Client.picture))
+async def order_kat(message: Message, state: FSMContext):
+    if not message.photo:
+        await message.answer("Пожалуйста, отправьте фотографию.")
+        return
+    photo = message.photo[-1]
+    file_id = photo.file_id
+    await state.update_data(photo_id=file_id)
+    data = await state.get_data()
+    # print(data.get('kat'), data.get('photo_id'))
+    await message.answer("Фото получено. Спасибо!")
+    await state.clear()
+
 
 
 @dp.callback_query(F.data == 'often_quest')
