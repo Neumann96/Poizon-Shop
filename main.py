@@ -43,6 +43,8 @@ class Client(StatesGroup):
     cours = State()
     order_kat = State()
     picture = State()
+    link = State()
+    size = State()
 
 
 @dp.message(Command("start"), StateFilter(None))
@@ -99,10 +101,30 @@ async def order_kat(message: Message, state: FSMContext):
     photo = message.photo[-1]
     file_id = photo.file_id
     await state.update_data(photo_id=file_id)
-    data = await state.get_data()
-    # print(data.get('kat'), data.get('photo_id'))
-    await message.answer("Фото получено. Спасибо!")
-    await state.clear()
+    # data = await state.get_data()
+    await message.answer(text="<b>🔗Пожалуйста, отправьте ссылку на товар</b>",
+                           parse_mode="HTML")
+    await state.set_state(Client.link)
+
+
+@dp.message(StateFilter(Client.link))
+async def order_kat(message: Message, state: FSMContext):
+    if 'https://dw4.co' in message.text:
+        await state.update_data(link=message.text)
+        await message.answer(text='<b>📏Пожалуйста, напишите размер товара (актуально для одежды и обуви).\n\n'
+                             'Например: 42</b>',
+                             parse_mode='HTML')
+        await state.set_state(Client.size)
+    else:
+        await message.answer('Это не ссылка, отправьте пожалйуста ссылку!')
+
+
+@dp.message(StateFilter(Client.size))
+async def order_kat(message: Message, state: FSMContext):
+    if message.text.isdigit() or '.' in message.text or ',' in message.text:
+        await state.update_data(size=message.text)
+    else:
+        await message.answer('Введите, пожалуйста, размер!')
 
 
 
