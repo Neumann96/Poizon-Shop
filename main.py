@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 import os
 
 load_dotenv()
-token = os.getenv('token_test')
+token = os.getenv('token')
 proxy_url = os.getenv('proxy_url')
 
 storage = MemoryStorage()
@@ -144,9 +144,9 @@ async def price(message: Message, state: FSMContext):
         comission = get_price_comission(data.get('kat'))[0]
         res = int(price * cours + 1000 + comission)
         await bot.send_photo(chat_id=message.chat.id,
-                             caption=f'Ссылка на товар: {data.get('link')}\n'
-                                     f'Размер товара: {data.get('size')}\n'
-                                     f'Стоимость в ЮАНЯХ: {data.get('price')}¥\n'
+                             caption=f'Ссылка на товар: {data.get("link")}\n'
+                                     f'Размер товара: {data.get("size")}\n'
+                                     f'Стоимость в ЮАНЯХ: {data.get("price")}¥\n'
                                      f'Стоимость в РУБЛЯХ: {res}₽\n\n'
                                      f'Здесь возможно добавить какой-то текст?',
                              photo=data.get('photo_id'),
