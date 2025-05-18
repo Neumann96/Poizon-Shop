@@ -161,7 +161,8 @@ async def price(message: Message, state: FSMContext):
 @dp.callback_query(StateFilter(Client.done) or F.data == 'done_order')
 async def result(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
-    await callback.message.answer('Далее пользователь будет заполнять форму для почты и оплата)')
+    await callback.message.answer('Далее пользователь будет заполнять форму для почты и оплата)\n\n'
+                                  'А сообщение выше, будет отправляться тебе в лс вместе с почтовым данными.')
     await state.clear()
 
 
