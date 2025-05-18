@@ -6,7 +6,7 @@ from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKe
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import FSInputFile
-from aiohttp.log import client_logger
+import re
 
 from keyboards import *
 from sql_query import *
@@ -45,6 +45,8 @@ class Client(StatesGroup):
     picture = State()
     link = State()
     size = State()
+    price = State()
+    result = State()
 
 
 @dp.message(Command("start"), StateFilter(None))
@@ -83,7 +85,7 @@ async def quest(callback: CallbackQuery, state: FSMContext):
 @dp.callback_query(lambda c: c.data.startswith("calc_"), StateFilter(Client.order_kat))
 async def order_kat(callback: CallbackQuery, state: FSMContext):
     photo = FSInputFile("example.PNG")
-    await state.update_data(kat=callback.data)
+    await state.update_data(kat=callback.data[5:])
     await callback.message.delete()
     await callback.bot.send_photo(chat_id=callback.message.chat.id,
                                   photo=photo,
@@ -94,7 +96,7 @@ async def order_kat(callback: CallbackQuery, state: FSMContext):
 
 
 @dp.message(StateFilter(Client.picture))
-async def order_kat(message: Message, state: FSMContext):
+async def picture(message: Message, state: FSMContext):
     if not message.photo:
         await message.answer("Пожалуйста, отправьте фотографию.")
         return
@@ -108,9 +110,10 @@ async def order_kat(message: Message, state: FSMContext):
 
 
 @dp.message(StateFilter(Client.link))
-async def order_kat(message: Message, state: FSMContext):
+async def link(message: Message, state: FSMContext):
     if 'https://dw4.co' in message.text:
-        await state.update_data(link=message.text)
+        match = re.search(r'https?://\S+', message.text)
+        await state.update_data(link=match.group())
         await message.answer(text='<b>📏Пожалуйста, напишите размер товара (актуально для одежды и обуви).\n\n'
                              'Например: 42</b>',
                              parse_mode='HTML')
@@ -120,12 +123,67 @@ async def order_kat(message: Message, state: FSMContext):
 
 
 @dp.message(StateFilter(Client.size))
-async def order_kat(message: Message, state: FSMContext):
+async def size(message: Message, state: FSMContext):
     if message.text.isdigit() or '.' in message.text or ',' in message.text:
         await state.update_data(size=message.text)
+        await message.answer(text='<b>⚠️ Введите стоимость выбранной вещи <u>В ЮАНЯХ</u>.</b>',
+                             parse_mode='HTML')
+        await state.set_state(Client.price)
     else:
         await message.answer('Введите, пожалуйста, размер!')
 
+
+@dp.message(StateFilter(Client.price))
+async def price(message: Message, state: FSMContext):
+    if message.text.isdigit():
+        await state.update_data(price=message.text)
+        # await state.set_state(Client.result)
+        data = await state.get_data()
+        price = int(data.get('price'))
+        print(price)
+        cours = get_cours()[0]
+        print(cours)
+        comission = get_price_comission(data.get('kat'))[0]
+        print(comission)
+        res = int(price * cours + 1000 + comission)
+        print(res)
+        await bot.send_photo(chat_id=message.chat.id,
+                             caption=f'Ссылка на товар: {data.get('link')}\n'
+                                     f'Размер товара: {data.get('size')}\n'
+                                     f'Стоимость в ЮАНЯХ: {data.get('price')}¥\n'
+                                     f'Стоимость в РУБЛЯХ: {res}₽\n\n'
+                                     f'Здесь возможно добавить какой-то текст?',
+                             photo=data.get('photo_id'),
+                             parse_mode='HTML',
+                             reply_markup=ikb_done()
+                             )
+        await state.clear()
+    else:
+        await message.answer('Введите, пожалуйста, стоимость!')
+
+
+# @dp.message(StateFilter(Client.result))
+# async def result(message: Message, state: FSMContext):
+#     data = await state.get_data()
+#     price = int(data.get('size'))
+#     print(price)
+#     cours = get_cours()[0]
+#     print(cours)
+#     comission = get_price_comission(data.get('kat'))[0]
+#     print(comission)
+#     res = int(price * cours + 1000 + comission)
+#     print(res)
+#     await bot.send_photo(chat_id=message.chat.id,
+#                          caption=f'Ссылка на товар: {data.get('link')}\n'
+#                                  f'Размер товара: {data.get('size')}\n'
+#                                  f'Стоимость в ЮАНЯХ: {data.get('price')}¥'
+#                                  f'Стоимость в РУБЛЯХ: {res}₽\n\n'
+#                                  f'Здесь возможно добавить какой-то текст?',
+#                          photo=data.get('photo_id'),
+#                          parse_mode='HTML',
+#                          reply_markup=ikb_done()
+#                          )
+#     await state.clear()
 
 
 @dp.callback_query(F.data == 'often_quest')
@@ -184,7 +242,7 @@ async def res_calc2(message: Message, state: FSMContext):
         price = int(message.text)
         cours = get_cours()[0]
         comission = get_price_comission(name[5:])[0]
-        res = price * cours + 1000 + comission
+        res = int(price * cours + 1000 + comission)
         await message.bot.send_message(chat_id=message.from_user.id,
                                        text=f'💰 Итоговая стоимость товара <b>{res} рублей</b>\n\n'
                                             f'Комиссия сервиса: <b>1000 рублей</b> (уже включена в итоговую стоимость)\n\n'

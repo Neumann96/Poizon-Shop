@@ -60,3 +60,11 @@ def ikb_come_quest():
     builder = InlineKeyboardBuilder()
     builder.add(InlineKeyboardButton(text='🔙 К вопросам', callback_data='often_quest'))
     return builder.as_markup()
+
+
+def ikb_done():
+    builder = InlineKeyboardBuilder()
+    builder.add(InlineKeyboardButton(text='📝 Изменить', callback_data='make_order'),
+                InlineKeyboardButton(text='✅ Верно', callback_data='done_order'),)
+    builder.adjust(1)
+    return builder.as_markup()
