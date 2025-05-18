@@ -47,6 +47,7 @@ class Client(StatesGroup):
     size = State()
     price = State()
     result = State()
+    done = State()
 
 
 @dp.message(Command("start"), StateFilter(None))
@@ -137,16 +138,11 @@ async def size(message: Message, state: FSMContext):
 async def price(message: Message, state: FSMContext):
     if message.text.isdigit():
         await state.update_data(price=message.text)
-        # await state.set_state(Client.result)
         data = await state.get_data()
         price = int(data.get('price'))
-        print(price)
         cours = get_cours()[0]
-        print(cours)
         comission = get_price_comission(data.get('kat'))[0]
-        print(comission)
         res = int(price * cours + 1000 + comission)
-        print(res)
         await bot.send_photo(chat_id=message.chat.id,
                              caption=f'Ссылка на товар: {data.get('link')}\n'
                                      f'Размер товара: {data.get('size')}\n'
@@ -157,33 +153,16 @@ async def price(message: Message, state: FSMContext):
                              parse_mode='HTML',
                              reply_markup=ikb_done()
                              )
-        await state.clear()
+        await state.set_state(Client.done)
     else:
         await message.answer('Введите, пожалуйста, стоимость!')
 
 
-# @dp.message(StateFilter(Client.result))
-# async def result(message: Message, state: FSMContext):
-#     data = await state.get_data()
-#     price = int(data.get('size'))
-#     print(price)
-#     cours = get_cours()[0]
-#     print(cours)
-#     comission = get_price_comission(data.get('kat'))[0]
-#     print(comission)
-#     res = int(price * cours + 1000 + comission)
-#     print(res)
-#     await bot.send_photo(chat_id=message.chat.id,
-#                          caption=f'Ссылка на товар: {data.get('link')}\n'
-#                                  f'Размер товара: {data.get('size')}\n'
-#                                  f'Стоимость в ЮАНЯХ: {data.get('price')}¥'
-#                                  f'Стоимость в РУБЛЯХ: {res}₽\n\n'
-#                                  f'Здесь возможно добавить какой-то текст?',
-#                          photo=data.get('photo_id'),
-#                          parse_mode='HTML',
-#                          reply_markup=ikb_done()
-#                          )
-#     await state.clear()
+@dp.callback_query(StateFilter(Client.done) or F.data == 'done_order')
+async def result(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    await callback.message.answer('Далее пользователь будет заполнять форму для почты и оплата)')
+    await state.clear()
 
 
 @dp.callback_query(F.data == 'often_quest')
