@@ -6,6 +6,7 @@ from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKe
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import FSInputFile
+from texts import *
 import re
 
 from keyboards import *
@@ -14,26 +15,12 @@ from dotenv import load_dotenv
 import os
 
 load_dotenv()
-token = os.getenv('token')
+token = os.getenv('token_test')
 proxy_url = os.getenv('proxy_url')
 
 storage = MemoryStorage()
 bot = Bot(token=token, proxy=proxy_url)
 dp = Dispatcher(storage=storage)
-
-calc_text = '📊 В нашем калькуляторе Вы можете сделать расчет стоимости товара с доставкой до России.\n\n💬 Выберите подходящий раздел:'
-
-start_message = '''
-😉 <b>Добро пожаловать в бот группы <u>logistic by pumba</u>!</b>
-
-🛍 Мы помогаем <b>выкупать товары исключительно с китайской площадки <u>POIZON (DEWU)</u></b>.
-
-⛔️ <b>Все расчёты, заказы и оплата производятся <u>только в этом боте</u>.</b>  
-<i>Оплата в личных сообщениях — не принимается!</i>
-
-⚠️ <b>Возврату и обмену товар <u>не подлежит</u>.</b>  
-<i>Мы оказываем только услуги выкупа и доставки.</i>
-'''
 
 name = ''
 
@@ -52,7 +39,7 @@ class Client(StatesGroup):
 
 @dp.message(Command("start"), StateFilter(None))
 async def start_command(message: Message, state: FSMContext):
-    photo = FSInputFile("pumba_pic.jpg")
+    photo = FSInputFile("media/pumba_pic.jpg")
     try:
         await bot.send_photo(chat_id=message.chat.id,
                              photo=photo,
@@ -85,12 +72,13 @@ async def quest(callback: CallbackQuery, state: FSMContext):
 
 @dp.callback_query(lambda c: c.data.startswith("calc_"), StateFilter(Client.order_kat))
 async def order_kat(callback: CallbackQuery, state: FSMContext):
-    photo = FSInputFile("example.PNG")
+    photo = FSInputFile("media/example.PNG")
     await state.update_data(kat=callback.data[5:])
     await callback.message.delete()
     await callback.bot.send_photo(chat_id=callback.message.chat.id,
                                   photo=photo,
-                                  caption=f'<b>🖼Пожалуйста, вставьте фото товара, как показано на примере:</b>',
+                                  caption=f'🖼️ Пожалуйста, вставьте скриншот страницы товара, как показано на примере',
+                                  reply_markup=ikb_where_link(),
                                   parse_mode='HTML')
     await callback.answer()
     await state.set_state(Client.picture)
@@ -104,8 +92,7 @@ async def picture(message: Message, state: FSMContext):
     photo = message.photo[-1]
     file_id = photo.file_id
     await state.update_data(photo_id=file_id)
-    # data = await state.get_data()
-    await message.answer(text="<b>🔗Пожалуйста, отправьте ссылку на товар</b>",
+    await message.answer(text="<b>🔗 Пожалуйста, отправьте ссылку на товар</b>",
                            parse_mode="HTML")
     await state.set_state(Client.link)
 
@@ -115,8 +102,8 @@ async def link(message: Message, state: FSMContext):
     if 'https://dw4.co' in message.text:
         match = re.search(r'https?://\S+', message.text)
         await state.update_data(link=match.group())
-        await message.answer(text='<b>📏Пожалуйста, напишите размер товара (актуально для одежды и обуви).\n\n'
-                             'Например: 42</b>',
+        await message.answer(text='📏 Пожалуйста, напишите размер товара (актуально для одежды и обуви).\n\n'
+                             'Например: 42',
                              parse_mode='HTML')
         await state.set_state(Client.size)
     else:
@@ -127,7 +114,7 @@ async def link(message: Message, state: FSMContext):
 async def size(message: Message, state: FSMContext):
     if message.text.isdigit() or '.' in message.text or ',' in message.text:
         await state.update_data(size=message.text)
-        await message.answer(text='<b>⚠️ Введите стоимость выбранной вещи <u>В ЮАНЯХ</u>.</b>',
+        await message.answer(text='❕Введите стоимость выбранной вами позиции в Юанях:',
                              parse_mode='HTML')
         await state.set_state(Client.price)
     else:
@@ -144,11 +131,11 @@ async def price(message: Message, state: FSMContext):
         comission = get_price_comission(data.get('kat'))[0]
         res = int(price * cours + 1000 + comission)
         await bot.send_photo(chat_id=message.chat.id,
-                             caption=f'Ссылка на товар: {data.get("link")}\n'
-                                     f'Размер товара: {data.get("size")}\n'
-                                     f'Стоимость в ЮАНЯХ: {data.get("price")}¥\n'
-                                     f'Стоимость в РУБЛЯХ: {res}₽\n\n'
-                                     f'Здесь возможно добавить какой-то текст?',
+                             caption=f'🔗 Ссылка на товар: {data.get("link")}\n'
+                                     f'🧩 Размер: {data.get("size")}\n'
+                                     f'💴 Стоимость товара в Юанях: {data.get("price")}¥\n'
+                                     f'💳 Итоговая стоимость заказа: {res}₽\n\n'
+                                     f'Проверьте, пожалуйста, правильность введенных вами данных!',
                              photo=data.get('photo_id'),
                              parse_mode='HTML',
                              reply_markup=ikb_done()
@@ -169,7 +156,7 @@ async def result(callback: CallbackQuery, state: FSMContext):
 @dp.callback_query(F.data == 'often_quest')
 async def quest(callback: CallbackQuery):
     await callback.message.delete()
-    await callback.message.answer('❓Есть вопросы? Возможно, ответ уже ждёт вас здесь.',
+    await callback.message.answer('❓ Есть вопросы? Возможно, ответ уже ждёт вас здесь.',
                                   reply_markup=ikb_often_question())
 
 
@@ -224,10 +211,10 @@ async def res_calc2(message: Message, state: FSMContext):
         comission = get_price_comission(name[5:])[0]
         res = int(price * cours + 1000 + comission)
         await message.bot.send_message(chat_id=message.from_user.id,
-                                       text=f'💰 Итоговая стоимость товара <b>{res} рублей</b>\n\n'
-                                            f'Комиссия сервиса: <b>1000 рублей</b> (уже включена в итоговую стоимость)\n\n'
-                                            f'Доставка на выбранный тип товара: <b>{comission} рублей</b>\n\n'
-                                            f'📊 Курс юаня: <b>{cours}</b>',
+                                       text=f'💳 Итоговая стоимость заказа: <b>{res} рублей</b>\n\n'
+                                            f'🚚 Стоимость доставки: <b>{comission} рублей</b>\n'
+                                            f'💸 Комиссия: <b>1000₽</b>\n'
+                                            f'📊 Курс: <b>{cours}</b>',
                                        parse_mode='HTML',
                                        reply_markup=ikb_home_order())
         await state.clear()

@@ -20,6 +20,7 @@ def get_ikb_start():
     builder.add(InlineKeyboardButton(text='💵 Рассчитать стоимость', callback_data='calc'),
                 InlineKeyboardButton(text='🧾 Оформить заказ', callback_data='make_order'),
                 InlineKeyboardButton(text='💬 Отзывы', url='https://t.me/pumbafeedbacks'),
+                InlineKeyboardButton(text='📖 Инструкция', callback_data='instructions'),
                 InlineKeyboardButton(text='❓ Частые вопросы', callback_data='often_quest'),
                 InlineKeyboardButton(text='📩 Задать вопрос', url='https://t.me/lottematte'),
                 InlineKeyboardButton(text='📲 Скачать POIZON iOS', url='https://apps.apple.com/am/app/%E5%BE%97%E7%89%A9-%E5%BE%97%E5%88%B0%E7%BE%8E%E5%A5%BD%E4%BA%8B%E7%89%A9/id1012871328'),
@@ -59,6 +60,12 @@ def ikb_often_question():
 def ikb_come_quest():
     builder = InlineKeyboardBuilder()
     builder.add(InlineKeyboardButton(text='🔙 К вопросам', callback_data='often_quest'))
+    return builder.as_markup()
+
+
+def ikb_where_link():
+    builder = InlineKeyboardBuilder()
+    builder.add(InlineKeyboardButton(text='🔍 Где найти ссылку?', callback_data='where_link'))
     return builder.as_markup()
 
 
