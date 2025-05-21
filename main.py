@@ -126,7 +126,6 @@ async def order_kat(callback: CallbackQuery, state: FSMContext):
     await callback.bot.send_photo(chat_id=callback.message.chat.id,
                                   photo=photo,
                                   caption=f'🖼️ Пожалуйста, вставьте скриншот страницы товара, как показано на примере',
-                                  reply_markup=ikb_where_link(),
                                   parse_mode='HTML')
     await callback.answer()
     await state.set_state(Client.picture)
@@ -135,13 +134,14 @@ async def order_kat(callback: CallbackQuery, state: FSMContext):
 @dp.message(StateFilter(Client.picture))
 async def picture(message: Message, state: FSMContext):
     if not message.photo:
-        await message.answer("Пожалуйста, отправьте фотографию.")
+        await message.answer("Пожалуйста, отправьте фотографию.",)
         return
     photo = message.photo[-1]
     file_id = photo.file_id
     await state.update_data(photo_id=file_id)
     await message.answer(text="<b>🔗 Пожалуйста, отправьте ссылку на товар</b>",
-                           parse_mode="HTML")
+                         reply_markup=ikb_where_link(),
+                         parse_mode="HTML")
     await state.set_state(Client.link)
 
 
@@ -292,6 +292,19 @@ async def admin(message: Message, state: FSMContext):
             await message.answer('Вы ввели не вещественное число')
     except ValueError:
         await message.answer('Вы ввели не вещественное число')
+
+
+@dp.callback_query(F.data == 'where_link')
+async def where_link(callback: CallbackQuery):
+    await callback.answer()
+    file1 = FSInputFile('media/link_1.jpg')
+    file2 = FSInputFile('media/link_2.jpg')
+    photos = [
+        InputMediaPhoto(media=file1, caption=where_link_text, parse_mode='HTML'),
+        InputMediaPhoto(media=file2)
+    ]
+    await bot.send_media_group(chat_id=callback.message.chat.id,
+                               media=photos)
 
 
 if __name__ == '__main__':
