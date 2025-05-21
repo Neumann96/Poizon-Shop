@@ -93,7 +93,29 @@ async def quest(callback: CallbackQuery, state: FSMContext):
     ]
     await bot.send_media_group(chat_id=callback.message.chat.id,
                                media=photos)
+    await callback.message.answer('Выберите раздел:',
+                                  reply_markup=ikb_instruction())
 
+
+@dp.callback_query(F.data == 'guide')
+async def quest(callback: CallbackQuery, state: FSMContext):
+    await callback.message.delete()
+    file1 = FSInputFile('media/guide_1.jpg')
+    file2 = FSInputFile('media/guide_2.jpg')
+    file3 = FSInputFile('media/guide_3.jpg')
+    file4 = FSInputFile('media/guide_4.jpg')
+    file5 = FSInputFile('media/guide_5.jpg')
+    photos = [
+        InputMediaPhoto(media=file1, caption=guide_text, parse_mode='HTML'),
+        InputMediaPhoto(media=file2),
+        InputMediaPhoto(media=file3),
+        InputMediaPhoto(media=file4),
+        InputMediaPhoto(media=file5)
+    ]
+    await bot.send_media_group(chat_id=callback.message.chat.id,
+                               media=photos)
+    await callback.message.answer('Выберите раздел:',
+                                  reply_markup=ikb_instruction())
 
 
 @dp.callback_query(lambda c: c.data.startswith("calc_"), StateFilter(Client.order_kat))
