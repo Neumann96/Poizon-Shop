@@ -2,7 +2,7 @@ from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
-from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import FSInputFile
@@ -37,9 +37,10 @@ class Client(StatesGroup):
     done = State()
 
 
-@dp.message(Command("start"), StateFilter(None))
+@dp.message(Command("start"), StateFilter('*'))
 async def start_command(message: Message, state: FSMContext):
     photo = FSInputFile("media/pumba_pic.jpg")
+    await state.clear()
     try:
         await bot.send_photo(chat_id=message.chat.id,
                              photo=photo,
@@ -54,7 +55,7 @@ async def start_command(message: Message, state: FSMContext):
 async def calc_price(callback: CallbackQuery, state: FSMContext):
     await callback.message.delete()
     await state.clear()
-    photo = FSInputFile("pumba_pic.jpg")
+    photo = FSInputFile("media/pumba_pic.jpg")
     await bot.send_photo(chat_id=callback.message.chat.id,
                          photo=photo,
                          caption=f'{start_message}',
@@ -68,6 +69,31 @@ async def quest(callback: CallbackQuery, state: FSMContext):
     await callback.message.answer(calc_text,
                                   reply_markup=get_ikb_kat())
     await state.set_state(Client.order_kat)
+
+
+@dp.callback_query(F.data == 'instructions')
+async def quest(callback: CallbackQuery, state: FSMContext):
+    await callback.message.delete()
+    await callback.message.answer('Выберите раздел:',
+                                  reply_markup=ikb_instruction())
+
+
+@dp.callback_query(F.data == 'log_acc')
+async def quest(callback: CallbackQuery, state: FSMContext):
+    await callback.message.delete()
+    file1 = FSInputFile('media/log_acc_1.jpg')
+    file2 = FSInputFile('media/log_acc_2.jpg')
+    file3 = FSInputFile('media/log_acc_3.jpg')
+    file4 = FSInputFile('media/log_acc_4.jpg')
+    photos = [
+        InputMediaPhoto(media=file1, caption=log_acc_text, parse_mode='HTML'),
+        InputMediaPhoto(media=file2),
+        InputMediaPhoto(media=file3),
+        InputMediaPhoto(media=file4)
+    ]
+    await bot.send_media_group(chat_id=callback.message.chat.id,
+                               media=photos)
+
 
 
 @dp.callback_query(lambda c: c.data.startswith("calc_"), StateFilter(Client.order_kat))

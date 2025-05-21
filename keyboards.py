@@ -4,13 +4,13 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 def ikb_come_home():
     builder = InlineKeyboardBuilder()
-    builder.add(InlineKeyboardButton(text='🏠На главную', callback_data='home'))
+    builder.add(InlineKeyboardButton(text='🏠 На главную', callback_data='home'))
     return builder.as_markup()
 
 
 def ikb_home_order():
     builder = InlineKeyboardBuilder()
-    builder.add(InlineKeyboardButton(text='🏠На главную', callback_data='home'),
+    builder.add(InlineKeyboardButton(text='🏠 На главную', callback_data='home'),
                 InlineKeyboardButton(text='🧾 Оформить заказ', callback_data='make_order'))
     return builder.as_markup()
 
@@ -41,7 +41,7 @@ def get_ikb_kat():
     builder.add(InlineKeyboardButton(text='👖 Штаны, джинсы', callback_data='calc_jeans'),
                 InlineKeyboardButton(text='🧢 Головные уборы', callback_data='calc_hats'))
     builder.add(InlineKeyboardButton(text='🧥 Зимние куртки, пальто', callback_data='calc_jacket'))
-    builder.add(InlineKeyboardButton(text='🏠На главную', callback_data='home'))
+    builder.add(InlineKeyboardButton(text='🏠 На главную', callback_data='home'))
 
     builder.adjust(1, 2, 1, 2, 1, 2, 1, 1)
     return builder.as_markup()
@@ -52,7 +52,7 @@ def ikb_often_question():
     builder.add(InlineKeyboardButton(text='Какие сроки доставки?', callback_data='time_delivery'),
                 InlineKeyboardButton(text='Какой компанией осуществляется отправка по россии?', callback_data='trans_comp'),
                 InlineKeyboardButton(text='Как отследить заказ?', callback_data='track_order'),
-                InlineKeyboardButton(text='🏠На главную', callback_data='home'))
+                InlineKeyboardButton(text='🏠 На главную', callback_data='home'))
     builder.adjust(1)
     return builder.as_markup()
 
@@ -74,4 +74,19 @@ def ikb_done():
     builder.add(InlineKeyboardButton(text='📝 Изменить', callback_data='make_order'),
                 InlineKeyboardButton(text='✅ Верно', callback_data='done_order'),)
     builder.adjust(1)
+    return builder.as_markup()
+
+
+def ikb_instruction():
+    builder = InlineKeyboardBuilder()
+    builder.add(InlineKeyboardButton(text='📋 Регистрация аккаунта', callback_data='log_acc'),
+                InlineKeyboardButton(text='📚 Гайд по приложению', callback_data='guide'),
+                InlineKeyboardButton(text='🏠 На главную', callback_data='home'))
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def ikb_come_instr():
+    builder = InlineKeyboardBuilder()
+    builder.add(InlineKeyboardButton(text='🔙 Назад', callback_data='come_inst'))
     return builder.as_markup()
