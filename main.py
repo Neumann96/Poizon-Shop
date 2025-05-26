@@ -35,6 +35,7 @@ class Client(StatesGroup):
     price = State()
     result = State()
     done = State()
+    mail = State()
 
 
 @dp.message(Command("start"), StateFilter('*'))
@@ -193,11 +194,20 @@ async def price(message: Message, state: FSMContext):
         await message.answer('Введите, пожалуйста, стоимость!')
 
 
-@dp.callback_query(StateFilter(Client.done) or F.data == 'done_order')
+@dp.callback_query(StateFilter(Client.done))
 async def result(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
-    await callback.message.answer('Далее пользователь будет заполнять форму для почты и оплата)\n\n'
-                                  'А сообщение выше, будет отправляться тебе в лс вместе с почтовым данными.')
+    await callback.message.answer(mail_text)
+    await state.set_state(Client.mail)
+
+
+@dp.message(StateFilter(Client.mail))
+async def result(message: Message, state: FSMContext):
+    if message.text.count('\n') >= 6:
+        await message.answer(f'<b>✅ Заказ принят!</b>\n\n'
+                             f'Ожидайте подтверждения, для совершения оплаты!')
+    else:
+        await message.answer('Ваше сообщение не соответствует нужному формату')
     await state.clear()
 
 
