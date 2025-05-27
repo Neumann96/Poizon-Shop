@@ -90,3 +90,10 @@ def ikb_come_instr():
     builder = InlineKeyboardBuilder()
     builder.add(InlineKeyboardButton(text='🔙 Назад', callback_data='come_inst'))
     return builder.as_markup()
+
+
+def ikb_sign(order_id):
+    print(order_id)
+    builder = InlineKeyboardBuilder()
+    builder.add(InlineKeyboardButton(text='✅ Подтвердить', callback_data=f'id_{order_id}'))
+    return builder.as_markup()

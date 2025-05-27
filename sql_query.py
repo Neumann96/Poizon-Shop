@@ -25,3 +25,27 @@ def change_cours(new_cours):
     cursor.execute(f"Update cours set price = ?", (new_cours,))
     connect.commit()
     cursor.close()
+
+
+async def add_order(user_id):
+    connect = sqlite3.connect('Poizon.db')
+    cursor = connect.cursor()
+    try:
+        cursor.execute('INSERT INTO orders(user_id) VALUES(?);', (user_id,))
+        order_id = cursor.lastrowid  # Получаем ID вставленной записи
+        connect.commit()
+        return order_id
+    except Exception as e:
+        print("Ошибка при добавлении заказа:", e)
+        return None
+    finally:
+        cursor.close()
+        connect.close()
+
+
+# def get_cours(user_id):
+#     connect = sqlite3.connect('Poizon.db')
+#     cursor = connect.cursor()
+#
+#     res = cursor.execute(f"SELECT order_id FROM orders WHERE user_id={}").fetchone()
+#     return res

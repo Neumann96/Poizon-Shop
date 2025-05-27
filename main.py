@@ -205,10 +205,34 @@ async def result(callback: CallbackQuery, state: FSMContext):
 async def result(message: Message, state: FSMContext):
     if message.text.count('\n') >= 6:
         await message.answer(f'<b>✅ Заказ принят!</b>\n\n'
-                             f'Ожидайте подтверждения, для совершения оплаты!')
+                             f'Ожидайте подтверждения, для совершения оплаты!',
+                             parse_mode='HTML')
+        data = await state.get_data()
+        price = int(data.get('price'))
+        cours = get_cours()[0]
+        comission = get_price_comission(data.get('kat'))[0]
+        res = int(price * cours + 1000 + comission)
+        order_id = await add_order(message.from_user.id)
+        await bot.send_photo(chat_id=1006103801,
+                       caption=f'🔗 Ссылка на товар: {data.get("link")}\n'
+                               f'🧩 Размер: {data.get("size")}\n'
+                               f'💴 Стоимость товара в Юанях: {data.get("price")}¥\n'
+                               f'💳 Итоговая стоимость заказа: {res}₽\n'
+                               f'Курс: {cours}\n\n'
+                               f'Информация по доставке:\n'
+                               f'{message.text}',
+                       photo=data.get('photo_id'),
+                       reply_markup=ikb_sign(order_id),
+                       parse_mode='HTML')
     else:
         await message.answer('Ваше сообщение не соответствует нужному формату')
     await state.clear()
+
+
+@dp.callback_query(lambda c: c.data.startswith("id_"))
+async def order_kat(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    await callback.message.answer(callback.data)
 
 
 @dp.callback_query(F.data == 'often_quest')
