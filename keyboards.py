@@ -101,5 +101,12 @@ def ikb_sign(order_id):
 def ikb_admin():
     builder = InlineKeyboardBuilder()
     builder.add(InlineKeyboardButton(text='🔄 Изменить курс', callback_data='change_cours'),
-                InlineKeyboardButton(text='💳 Изменить реквизиты', callback_data='change_pay'))
+                InlineKeyboardButton(text='💳 Реквизиты', callback_data='change_pay'))
+    return builder.as_markup()
+
+
+def ikb_change_or_add():
+    builder = InlineKeyboardBuilder()
+    builder.add(InlineKeyboardButton(text='📃 Добавить реквизиты', callback_data='add_propts'),
+                InlineKeyboardButton(text='💳 Изменить отображаемые', callback_data='change_propts'))
     return builder.as_markup()

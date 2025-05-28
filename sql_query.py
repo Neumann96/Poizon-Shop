@@ -61,6 +61,24 @@ async def get_order_by_id(order_id):
         connect.close()
 
 
+async def add_propt(info):
+    connect = sqlite3.connect('Poizon.db')
+    cursor = connect.cursor()
+    try:
+        # Предполагается, что info — это список из [user_id, username, sum]
+        cursor.execute(
+            'INSERT INTO propts(bank, number) VALUES (?, ?);',
+            (info[0], info[1])
+        )
+        connect.commit()
+    except Exception as e:
+        print("Ошибка при добавлении заказа:", e)
+        return None
+    finally:
+        cursor.close()
+        connect.close()
+
+
 # def get_cours(user_id):
 #     connect = sqlite3.connect('Poizon.db')
 #     cursor = connect.cursor()

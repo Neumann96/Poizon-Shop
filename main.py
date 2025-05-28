@@ -36,6 +36,8 @@ class Client(StatesGroup):
     result = State()
     done = State()
     mail = State()
+    number_propt = State()
+    bank_propt = State()
 
 
 @dp.message(Command("start"), StateFilter('*'))
@@ -53,7 +55,7 @@ async def start_command(message: Message, state: FSMContext):
 
 
 @dp.callback_query(StateFilter('*'), F.data == 'home')
-async def calc_price(callback: CallbackQuery, state: FSMContext):
+async def come_home(callback: CallbackQuery, state: FSMContext):
     await callback.message.delete()
     await state.clear()
     photo = FSInputFile("media/pumba_pic.jpg")
@@ -65,7 +67,7 @@ async def calc_price(callback: CallbackQuery, state: FSMContext):
 
 
 @dp.callback_query(F.data == 'make_order')
-async def quest(callback: CallbackQuery, state: FSMContext):
+async def make_order(callback: CallbackQuery, state: FSMContext):
     await callback.message.delete()
     await callback.message.answer(calc_text,
                                   reply_markup=get_ikb_kat())
@@ -73,14 +75,14 @@ async def quest(callback: CallbackQuery, state: FSMContext):
 
 
 @dp.callback_query(F.data == 'instructions')
-async def quest(callback: CallbackQuery, state: FSMContext):
+async def instructions(callback: CallbackQuery, state: FSMContext):
     await callback.message.delete()
     await callback.message.answer('Выберите раздел:',
                                   reply_markup=ikb_instruction())
 
 
 @dp.callback_query(F.data == 'log_acc')
-async def quest(callback: CallbackQuery, state: FSMContext):
+async def log_acc(callback: CallbackQuery, state: FSMContext):
     await callback.message.delete()
     file1 = FSInputFile('media/log_acc_1.jpg')
     file2 = FSInputFile('media/log_acc_2.jpg')
@@ -99,7 +101,7 @@ async def quest(callback: CallbackQuery, state: FSMContext):
 
 
 @dp.callback_query(F.data == 'guide')
-async def quest(callback: CallbackQuery, state: FSMContext):
+async def quide(callback: CallbackQuery, state: FSMContext):
     await callback.message.delete()
     file1 = FSInputFile('media/guide_1.jpg')
     file2 = FSInputFile('media/guide_2.jpg')
@@ -156,7 +158,7 @@ async def link(message: Message, state: FSMContext):
                              parse_mode='HTML')
         await state.set_state(Client.size)
     else:
-        await message.answer('Это не ссылка, отправьте пожалйуста ссылку!')
+        await message.answer('Это не ссылка, отправьте, пожалйуста, ссылку!')
 
 
 @dp.message(StateFilter(Client.size))
@@ -195,7 +197,7 @@ async def price(message: Message, state: FSMContext):
 
 
 @dp.callback_query(StateFilter(Client.done))
-async def result(callback: CallbackQuery, state: FSMContext):
+async def send_mail_info(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     await callback.message.answer(mail_text)
     await state.set_state(Client.mail)
@@ -226,7 +228,7 @@ async def result(message: Message, state: FSMContext):
                        reply_markup=ikb_sign(order_id),
                        parse_mode='HTML')
     else:
-        await message.answer('Ваше сообщение не соответствует нужному формату')
+        await message.answer('Ваше сообщение не соответствует нужному формату, попробуйте ещё раз!')
     await state.clear()
 
 
@@ -254,7 +256,7 @@ async def quest(callback: CallbackQuery):
 
 
 @dp.callback_query(F.data == 'time_delivery')
-async def quest(callback: CallbackQuery):
+async def quest_1(callback: CallbackQuery):
     await callback.message.delete()
     await callback.message.answer('Доставка занимает от 3 до 5 недель с момента прибытия товара '
                                   'на склад в Китае. Срок может незначительно варьироваться в зависимости от вашего города.',
@@ -262,14 +264,14 @@ async def quest(callback: CallbackQuery):
 
 
 @dp.callback_query(F.data == 'trans_comp')
-async def quest(callback: CallbackQuery):
+async def quest_2(callback: CallbackQuery):
     await callback.message.delete()
     await callback.message.answer('По России все заказы доставляются через Почту России.',
                                   reply_markup=ikb_come_quest())
 
 
 @dp.callback_query(F.data == 'track_order')
-async def quest(callback: CallbackQuery):
+async def quest_3(callback: CallbackQuery):
     await callback.message.delete()
     await callback.message.answer('Как только посылка будет передана в доставку по '
                                   'России, вы получите SMS-уведомление с информацией для отслеживания.',
@@ -326,6 +328,39 @@ async def admin(message: Message, state: FSMContext):
 @dp.callback_query(F.data == 'change_pay')
 async def change_pay(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
+    await callback.message.answer('Выбери действие:',
+                                  reply_markup=ikb_change_or_add())
+
+
+@dp.callback_query(F.data == 'add_propts')
+async def add_propts(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    await callback.message.delete()
+    await callback.message.answer(text='Отправь мне номер телефона для перевода или номер счёта')
+    await state.set_state(Client.number_propt)
+
+
+@dp.message(StateFilter(Client.number_propt))
+async def add_number_propt(message: Message, state: FSMContext):
+    if message.text.isdigit():
+        await state.update_data(number_propt=message.text)
+        await message.answer('Теперь напиши банк\n\n(То, что ты сейчас напишешь, будет отображаться в реквизитах у клиента)')
+        await state.set_state(Client.bank_propt)
+    else:
+        await message.answer('Ты отправил не номер)')
+
+
+@dp.message(StateFilter(Client.bank_propt))
+async def add_bank_propt(message: Message, state: FSMContext):
+    info = await state.get_data()
+    await add_propt([message.text, info.get('number_propt')])
+    await message.answer('Добавил новые реквизиты!')
+    await state.clear()
+
+
+@dp.callback_query(F.data == 'change_propts')
+async def change_propts(callback: CallbackQuery):
+    await callback.answer()
 
 
 
@@ -346,9 +381,9 @@ async def course_change(message: Message, state: FSMContext):
                                  f'Новый курс: {get_cours()[0]}')
             await state.clear()
         else:
-            await message.answer('Вы ввели не вещественное число')
+            await message.answer('Вы ввели не вещественное число, попробуйте ещё раз!')
     except ValueError:
-        await message.answer('Вы ввели не вещественное число')
+        await message.answer('Вы ввели не вещественное число, попробуйте ещё раз!')
 
 
 @dp.callback_query(F.data == 'where_link')
