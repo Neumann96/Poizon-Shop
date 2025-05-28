@@ -17,26 +17,44 @@ def get_cours():
         return res
 
 
-def change_cours(new_cours):
+async def change_cours(new_cours):
     connect = sqlite3.connect('Poizon.db')
     cursor = connect.cursor()
 
-    new_cours = float(new_cours)
     cursor.execute(f"Update cours set price = ?", (new_cours,))
     connect.commit()
     cursor.close()
 
 
-async def add_order(user_id):
+async def add_order(info):
     connect = sqlite3.connect('Poizon.db')
     cursor = connect.cursor()
     try:
-        cursor.execute('INSERT INTO orders(user_id) VALUES(?);', (user_id,))
+        # Предполагается, что info — это список из [user_id, username, sum]
+        cursor.execute(
+            'INSERT INTO orders(user_id, username, sum) VALUES (?, ?, ?);',
+            (info[0], info[1], info[2])
+        )
         order_id = cursor.lastrowid  # Получаем ID вставленной записи
         connect.commit()
         return order_id
     except Exception as e:
         print("Ошибка при добавлении заказа:", e)
+        return None
+    finally:
+        cursor.close()
+        connect.close()
+
+
+async def get_order_by_id(order_id):
+    connect = sqlite3.connect('Poizon.db')
+    cursor = connect.cursor()
+    try:
+        cursor.execute('SELECT * FROM orders WHERE order_id = ?;', (order_id,))
+        result = cursor.fetchone()  # Используем fetchone, если ожидаем одну строку
+        return result if result else None
+    except Exception as e:
+        print("Ошибка при получении данных заказа:", e)
         return None
     finally:
         cursor.close()

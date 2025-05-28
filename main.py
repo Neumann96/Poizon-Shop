@@ -204,7 +204,7 @@ async def result(callback: CallbackQuery, state: FSMContext):
 @dp.message(StateFilter(Client.mail))
 async def result(message: Message, state: FSMContext):
     if message.text.count('\n') >= 6:
-        await message.answer(f'<b>✅ Заказ принят!</b>\n\n'
+        await message.answer(f'<b>Заказ принят!</b>\n\n'
                              f'Ожидайте подтверждения, для совершения оплаты!',
                              parse_mode='HTML')
         data = await state.get_data()
@@ -212,9 +212,10 @@ async def result(message: Message, state: FSMContext):
         cours = get_cours()[0]
         comission = get_price_comission(data.get('kat'))[0]
         res = int(price * cours + 1000 + comission)
-        order_id = await add_order(message.from_user.id)
+        order_id = await add_order([message.from_user.id, message.from_user.username, res])
         await bot.send_photo(chat_id=1006103801,
-                       caption=f'🔗 Ссылка на товар: {data.get("link")}\n'
+                       caption=f'🙎‍♂️ Клиент: @{message.from_user.username}\n'
+                               f'🔗 Ссылка на товар: {data.get("link")}\n'
                                f'🧩 Размер: {data.get("size")}\n'
                                f'💴 Стоимость товара в Юанях: {data.get("price")}¥\n'
                                f'💳 Итоговая стоимость заказа: {res}₽\n'
@@ -232,7 +233,17 @@ async def result(message: Message, state: FSMContext):
 @dp.callback_query(lambda c: c.data.startswith("id_"))
 async def order_kat(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
-    await callback.message.answer(callback.data)
+    user_info = await get_order_by_id(callback.data[3:])
+    await callback.message.answer(f'Заказ подтверждён!\n\n'
+                                  f'‍🙎‍♂️ Клиент: @{user_info[2]}\n'
+                                  f'💸 Сумма: {user_info[3]}₽')
+    await bot.send_message(chat_id=int(user_info[1]),
+                           text=f'✅ <b>Заказ подтверждён!</b>\n\n'
+                                f'Реквизиты для оплаты:\n\n'
+                                f'<code>89213659517</code>\n'
+                                f'Яндекс Банк ‼\n'
+                                f'Фёдор П.\n',
+                           parse_mode='HTML')
 
 
 @dp.callback_query(F.data == 'often_quest')
@@ -305,39 +316,39 @@ async def res_calc2(message: Message, state: FSMContext):
 
 @dp.message(Command('admin'))
 async def admin(message: Message, state: FSMContext):
-    await message.answer(text='Выбери раздел:',
+    if message.from_user.username == 'nmnn96' or message.from_user.username == 'lottematte':
+        await message.answer(text='Выбери раздел:',
                          reply_markup=ikb_admin())
+    else:
+        return
 
 
 @dp.callback_query(F.data == 'change_pay')
-async def change_cours(callback: CallbackQuery, state: FSMContext):
+async def change_pay(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
 
 
 
 @dp.callback_query(F.data == 'change_cours')
-async def change_cours(callback: CallbackQuery, state: FSMContext):
+async def change_cours_bd(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
-    if callback.message.from_user.username == 'nmnn96' or callback.message.from_user.username == 'lottematte':
-        await callback.message.answer('Напиши новый курс юаня вещественным числом через точку:')
-        await state.set_state(Client.cours)
-    else:
-        return
+    await callback.message.answer('Напиши новый курс юаня вещественным числом через точку:')
+    await state.set_state(Client.cours)
 
 
-@dp.callback_query(StateFilter(Client.cours))
-async def course_change(callback: Message, state: FSMContext):
+@dp.message(StateFilter(Client.cours))
+async def course_change(message: Message, state: FSMContext):
     try:
-        n = float(callback.message.text)
+        n = float(message.text)
         if not n.is_integer():
-            change_cours(n)
-            await callback.message.answer(f'Курс успешно изменён!\n\n'
+            await change_cours(n)
+            await message.answer(f'Курс успешно изменён!\n\n'
                                  f'Новый курс: {get_cours()[0]}')
             await state.clear()
         else:
-            await callback.message.answer('Вы ввели не вещественное число')
+            await message.answer('Вы ввели не вещественное число')
     except ValueError:
-        await callback.message.answer('Вы ввели не вещественное число')
+        await message.answer('Вы ввели не вещественное число')
 
 
 @dp.callback_query(F.data == 'where_link')
