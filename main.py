@@ -303,29 +303,41 @@ async def res_calc2(message: Message, state: FSMContext):
     else:
         await message.answer('Вы ввели не стоимость, попробуйте ещё раз!')
 
-
 @dp.message(Command('admin'))
 async def admin(message: Message, state: FSMContext):
-    if message.from_user.username == 'nmnn96' or message.from_user.username == 'lottematte':
-        await message.answer('Напиши новый курс юаня вещественным числом через точку:')
+    await message.answer(text='Выбери раздел:',
+                         reply_markup=ikb_admin())
+
+
+@dp.callback_query(F.data == 'change_pay')
+async def change_cours(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+
+
+
+@dp.callback_query(F.data == 'change_cours')
+async def change_cours(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    if callback.message.from_user.username == 'nmnn96' or callback.message.from_user.username == 'lottematte':
+        await callback.message.answer('Напиши новый курс юаня вещественным числом через точку:')
         await state.set_state(Client.cours)
     else:
         return
 
 
-@dp.message(StateFilter(Client.cours))
-async def admin(message: Message, state: FSMContext):
+@dp.callback_query(StateFilter(Client.cours))
+async def course_change(callback: Message, state: FSMContext):
     try:
-        n = float(message.text)
+        n = float(callback.message.text)
         if not n.is_integer():
             change_cours(n)
-            await message.answer(f'Курс успешно изменён!\n\n'
+            await callback.message.answer(f'Курс успешно изменён!\n\n'
                                  f'Новый курс: {get_cours()[0]}')
             await state.clear()
         else:
-            await message.answer('Вы ввели не вещественное число')
+            await callback.message.answer('Вы ввели не вещественное число')
     except ValueError:
-        await message.answer('Вы ввели не вещественное число')
+        await callback.message.answer('Вы ввели не вещественное число')
 
 
 @dp.callback_query(F.data == 'where_link')

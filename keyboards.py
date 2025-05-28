@@ -93,7 +93,13 @@ def ikb_come_instr():
 
 
 def ikb_sign(order_id):
-    print(order_id)
     builder = InlineKeyboardBuilder()
     builder.add(InlineKeyboardButton(text='✅ Подтвердить', callback_data=f'id_{order_id}'))
+    return builder.as_markup()
+
+
+def ikb_admin():
+    builder = InlineKeyboardBuilder()
+    builder.add(InlineKeyboardButton(text='🔄 Изменить курс', callback_data='change_cours'),
+                InlineKeyboardButton(text='💳 Изменить реквизиты', callback_data='change_pay'))
     return builder.as_markup()
