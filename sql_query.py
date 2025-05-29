@@ -79,9 +79,40 @@ async def add_propt(info):
         connect.close()
 
 
-# def get_cours(user_id):
-#     connect = sqlite3.connect('Poizon.db')
-#     cursor = connect.cursor()
-#
-#     res = cursor.execute(f"SELECT order_id FROM orders WHERE user_id={}").fetchone()
-#     return res
+async def update_current_propts_id(new_id):
+    connect = sqlite3.connect('Poizon.db')
+    cursor = connect.cursor()
+
+    cursor.execute(f"Update propts_now set id_prop = ?", (new_id,))
+    connect.commit()
+    cursor.close()
+
+
+async def get_current_propts_id():
+    try:
+        connect = sqlite3.connect('Poizon.db')
+        cursor = connect.cursor()
+        cursor.execute("SELECT id_prop FROM propts_now LIMIT 1;")
+        result = cursor.fetchone()
+        return result[0] if result else None
+    except Exception as e:
+        print("Ошибка при получении текущего ID реквизитов:", e)
+        return None
+    finally:
+        cursor.close()
+        connect.close()
+
+
+async def get_payment_data_by_id(acc_id: int):
+    try:
+        connect = sqlite3.connect('Poizon.db')
+        cursor = connect.cursor()
+        cursor.execute("SELECT * FROM propts WHERE id = ?", (acc_id,))
+        result = cursor.fetchone()
+        return result  # Возвращает кортеж с полями строки или None
+    except Exception as e:
+        print("Ошибка при получении данных по ID:", e)
+        return None
+    finally:
+        cursor.close()
+        connect.close()

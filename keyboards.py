@@ -1,5 +1,6 @@
 from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+import sqlite3
 
 
 def ikb_come_home():
@@ -102,6 +103,7 @@ def ikb_admin():
     builder = InlineKeyboardBuilder()
     builder.add(InlineKeyboardButton(text='🔄 Изменить курс', callback_data='change_cours'),
                 InlineKeyboardButton(text='💳 Реквизиты', callback_data='change_pay'))
+    builder.adjust(1)
     return builder.as_markup()
 
 
@@ -109,4 +111,33 @@ def ikb_change_or_add():
     builder = InlineKeyboardBuilder()
     builder.add(InlineKeyboardButton(text='📃 Добавить реквизиты', callback_data='add_propts'),
                 InlineKeyboardButton(text='💳 Изменить отображаемые', callback_data='change_propts'))
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def ikb_propts():
+    builder = InlineKeyboardBuilder()
+
+    connect = sqlite3.connect('Poizon.db')
+    cursor = connect.cursor()
+
+    try:
+        cursor.execute("SELECT id, bank, number FROM propts")
+        rows = cursor.fetchall()
+
+        for row in rows:
+            acc_id, bank, number = row
+            text = f"{bank} | {number}"  # Одной строкой, без переноса
+            builder.row(
+                InlineKeyboardButton(
+                    text=text,
+                    callback_data=f"select_acc_{acc_id}"
+                )
+            )
+    except Exception as e:
+        print("Ошибка при получении данных из БД:", e)
+    finally:
+        cursor.close()
+        connect.close()
+
     return builder.as_markup()

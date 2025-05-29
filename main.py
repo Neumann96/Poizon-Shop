@@ -236,14 +236,16 @@ async def result(message: Message, state: FSMContext):
 async def order_kat(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     user_info = await get_order_by_id(callback.data[3:])
+    id = await get_current_propts_id()
+    data = await get_payment_data_by_id(id)
     await callback.message.answer(f'Заказ подтверждён!\n\n'
                                   f'‍🙎‍♂️ Клиент: @{user_info[2]}\n'
                                   f'💸 Сумма: {user_info[3]}₽')
     await bot.send_message(chat_id=int(user_info[1]),
                            text=f'✅ <b>Заказ подтверждён!</b>\n\n'
                                 f'Реквизиты для оплаты:\n\n'
-                                f'<code>89213659517</code>\n'
-                                f'Яндекс Банк ‼\n'
+                                f'<code>{data[1]}</code>\n'
+                                f'{data[0]}\n'
                                 f'Фёдор П.\n',
                            parse_mode='HTML')
 
@@ -361,7 +363,15 @@ async def add_bank_propt(message: Message, state: FSMContext):
 @dp.callback_query(F.data == 'change_propts')
 async def change_propts(callback: CallbackQuery):
     await callback.answer()
+    await callback.message.answer('Выбери какие реквизиты сейчас будут отображаться при оплате:',
+                                  reply_markup=ikb_propts())
 
+
+@dp.callback_query(F.data.startswith("select_acc_"))
+async def handle_select_account(callback: CallbackQuery):
+    await update_current_propts_id(callback.data.split('_')[-1])
+    await callback.message.delete()
+    await callback.message.answer('Обновил платёжные данные!')
 
 
 @dp.callback_query(F.data == 'change_cours')
