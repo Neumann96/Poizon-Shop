@@ -208,6 +208,7 @@ async def result(message: Message, state: FSMContext):
     if message.text.count('\n') >= 6:
         await message.answer(f'<b>Заказ принят!</b>\n\n'
                              f'Ожидайте подтверждения, для совершения оплаты!',
+                             reply_markup=ikb_come_home(),
                              parse_mode='HTML')
         data = await state.get_data()
         price = int(data.get('price'))
@@ -221,15 +222,27 @@ async def result(message: Message, state: FSMContext):
                                f'🧩 Размер: {data.get("size")}\n'
                                f'💴 Стоимость товара в Юанях: {data.get("price")}¥\n'
                                f'💳 Итоговая стоимость заказа: {res}₽\n'
-                               f'Курс: {cours}\n\n'
+                               f'📊 Курс: {cours}\n\n'
                                f'Информация по доставке:\n'
                                f'{message.text}',
                        photo=data.get('photo_id'),
                        reply_markup=ikb_sign(order_id),
                        parse_mode='HTML')
+        # await bot.send_photo(chat_id=6773782194,
+        #                      caption=f'🙎‍♂️ Клиент: @{message.from_user.username}\n'
+        #                              f'🔗 Ссылка на товар: {data.get("link")}\n'
+        #                              f'🧩 Размер: {data.get("size")}\n'
+        #                              f'💴 Стоимость товара в Юанях: {data.get("price")}¥\n'
+        #                              f'💳 Итоговая стоимость заказа: {res}₽\n'
+        #                              f'📊 Курс: {cours}\n\n'
+        #                              f'Информация по доставке:\n'
+        #                              f'{message.text}',
+        #                      photo=data.get('photo_id'),
+        #                      reply_markup=ikb_sign(order_id),
+        #                      parse_mode='HTML')
+        await state.clear()
     else:
         await message.answer('Ваше сообщение не соответствует нужному формату, попробуйте ещё раз!')
-    await state.clear()
 
 
 @dp.callback_query(lambda c: c.data.startswith("id_"))
@@ -243,7 +256,8 @@ async def order_kat(callback: CallbackQuery, state: FSMContext):
                                   f'💸 Сумма: {user_info[3]}₽')
     await bot.send_message(chat_id=int(user_info[1]),
                            text=f'✅ <b>Заказ подтверждён!</b>\n\n'
-                                f'Реквизиты для оплаты:\n\n'
+                                f'К оплате <b>{user_info[3]}₽</b>\n\n'
+                                f'Реквизиты для оплаты:\n'
                                 f'<code>{data[1]}</code>\n'
                                 f'{data[0]}\n'
                                 f'Фёдор П.\n',
@@ -363,6 +377,7 @@ async def add_bank_propt(message: Message, state: FSMContext):
 @dp.callback_query(F.data == 'change_propts')
 async def change_propts(callback: CallbackQuery):
     await callback.answer()
+    await callback.message.delete()
     await callback.message.answer('Выбери какие реквизиты сейчас будут отображаться при оплате:',
                                   reply_markup=ikb_propts())
 
