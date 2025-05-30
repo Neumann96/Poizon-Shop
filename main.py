@@ -129,7 +129,8 @@ async def order_kat(callback: CallbackQuery, state: FSMContext):
     await callback.bot.send_photo(chat_id=callback.message.chat.id,
                                   photo=photo,
                                   caption=f'🖼️ Пожалуйста, вставьте скриншот страницы товара, как показано на примере',
-                                  parse_mode='HTML')
+                                  parse_mode='HTML',
+                                  reply_markup=ikb_come_home())
     await callback.answer()
     await state.set_state(Client.picture)
 
@@ -155,7 +156,8 @@ async def link(message: Message, state: FSMContext):
         await state.update_data(link=match.group())
         await message.answer(text='📏 Пожалуйста, напишите размер товара (актуально для одежды и обуви).\n\n'
                              'Например: 42',
-                             parse_mode='HTML')
+                             parse_mode='HTML',
+                             reply_markup=ikb_come_home())
         await state.set_state(Client.size)
     else:
         await message.answer('Это не ссылка, отправьте, пожалйуста, ссылку!')
@@ -166,7 +168,8 @@ async def size(message: Message, state: FSMContext):
     if message.text.isdigit() or '.' in message.text or ',' in message.text:
         await state.update_data(size=message.text)
         await message.answer(text='❕Введите стоимость выбранной вами позиции в Юанях:',
-                             parse_mode='HTML')
+                             parse_mode='HTML',
+                             reply_markup=ikb_come_home())
         await state.set_state(Client.price)
     else:
         await message.answer('Введите, пожалуйста, размер!')
@@ -199,7 +202,8 @@ async def price(message: Message, state: FSMContext):
 @dp.callback_query(StateFilter(Client.done))
 async def send_mail_info(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
-    await callback.message.answer(mail_text)
+    await callback.message.answer(mail_text,
+                                  reply_markup=ikb_come_home())
     await state.set_state(Client.mail)
 
 
@@ -207,7 +211,8 @@ async def send_mail_info(callback: CallbackQuery, state: FSMContext):
 async def result(message: Message, state: FSMContext):
     if message.text.count('\n') >= 6:
         await message.answer(f'<b>Заказ принят!</b>\n\n'
-                             f'Ожидайте подтверждения, для совершения оплаты!',
+                             f'Ожидайте подтверждения, для совершения оплаты!\n'
+                             f'(курс может варьироваться, фактическая итоговая стоимость заказа будет отображена после подтверждения)',
                              reply_markup=ikb_come_home(),
                              parse_mode='HTML')
         data = await state.get_data()
@@ -255,12 +260,15 @@ async def order_kat(callback: CallbackQuery, state: FSMContext):
                                   f'‍🙎‍♂️ Клиент: @{user_info[2]}\n'
                                   f'💸 Сумма: {user_info[3]}₽')
     await bot.send_message(chat_id=int(user_info[1]),
+                           text='🚨 Убедительная просьба, будьте предельно внимательны на этапе оплаты, сверяйте СУММУ, ИМЯ и БАНК получателя!')
+    await bot.send_message(chat_id=int(user_info[1]),
                            text=f'✅ <b>Заказ подтверждён!</b>\n\n'
-                                f'К оплате <b>{user_info[3]}₽</b>\n\n'
-                                f'Реквизиты для оплаты:\n'
-                                f'<code>{data[1]}</code>\n'
-                                f'{data[0]}\n'
-                                f'Фёдор П.\n',
+                                f'Реквизиты для оплаты:\n\n'
+                                f'<code>📲 {data[1]}</code>\n'
+                                f'🏦 {data[0]}\n'
+                                f'👤 Фёдор П.\n\n'
+                                f'К оплате:  <b>{user_info[3]}₽</b>\n'
+                                f'После оплаты отправьте чек в PDF формате, пожалуйста',
                            parse_mode='HTML')
 
 
@@ -332,8 +340,9 @@ async def res_calc2(message: Message, state: FSMContext):
     else:
         await message.answer('Вы ввели не стоимость, попробуйте ещё раз!')
 
-@dp.message(Command('admin'))
+@dp.message(Command('admin'), StateFilter('*'))
 async def admin(message: Message, state: FSMContext):
+    await state.clear()
     if message.from_user.username == 'nmnn96' or message.from_user.username == 'lottematte':
         await message.answer(text='Выбери раздел:',
                          reply_markup=ikb_admin())
@@ -385,6 +394,7 @@ async def change_propts(callback: CallbackQuery):
 @dp.callback_query(F.data.startswith("select_acc_"))
 async def handle_select_account(callback: CallbackQuery):
     await update_current_propts_id(callback.data.split('_')[-1])
+    await callback.answer()
     await callback.message.delete()
     await callback.message.answer('Обновил платёжные данные!')
 

@@ -66,14 +66,16 @@ def ikb_come_quest():
 
 def ikb_where_link():
     builder = InlineKeyboardBuilder()
-    builder.add(InlineKeyboardButton(text='🔍 Где найти ссылку?', callback_data='where_link'))
+    builder.add(InlineKeyboardButton(text='🔍 Где найти ссылку?', callback_data='where_link'),
+                InlineKeyboardButton(text='🏠 На главную', callback_data='home'))
     return builder.as_markup()
 
 
 def ikb_done():
     builder = InlineKeyboardBuilder()
     builder.add(InlineKeyboardButton(text='📝 Изменить', callback_data='make_order'),
-                InlineKeyboardButton(text='✅ Верно', callback_data='done_order'),)
+                InlineKeyboardButton(text='✅ Верно', callback_data='done_order'),
+                InlineKeyboardButton(text='🏠 На главную', callback_data='home'))
     builder.adjust(1)
     return builder.as_markup()
 
@@ -102,7 +104,8 @@ def ikb_sign(order_id):
 def ikb_admin():
     builder = InlineKeyboardBuilder()
     builder.add(InlineKeyboardButton(text='🔄 Изменить курс', callback_data='change_cours'),
-                InlineKeyboardButton(text='💳 Реквизиты', callback_data='change_pay'))
+                InlineKeyboardButton(text='💳 Реквизиты', callback_data='change_pay'),
+                InlineKeyboardButton(text='🏠 На главную', callback_data='home'))
     builder.adjust(1)
     return builder.as_markup()
 
