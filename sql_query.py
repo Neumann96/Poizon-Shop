@@ -32,8 +32,8 @@ async def add_order(info):
     try:
         # Предполагается, что info — это список из [user_id, username, sum]
         cursor.execute(
-            'INSERT INTO orders(user_id, username, sum) VALUES (?, ?, ?);',
-            (info[0], info[1], info[2])
+            'INSERT INTO orders(user_id, username, sum, sum_y, comission) VALUES (?, ?, ?, ?, ?);',
+            (info[0], info[1], info[2], info[3], info[4])
         )
         order_id = cursor.lastrowid  # Получаем ID вставленной записи
         connect.commit()
@@ -108,6 +108,21 @@ async def get_payment_data_by_id(acc_id: int):
         connect = sqlite3.connect('Poizon.db')
         cursor = connect.cursor()
         cursor.execute("SELECT * FROM propts WHERE id = ?", (acc_id,))
+        result = cursor.fetchone()
+        return result  # Возвращает кортеж с полями строки или None
+    except Exception as e:
+        print("Ошибка при получении данных по ID:", e)
+        return None
+    finally:
+        cursor.close()
+        connect.close()
+
+
+async def get_sum_y(acc_id: int):
+    try:
+        connect = sqlite3.connect('Poizon.db')
+        cursor = connect.cursor()
+        cursor.execute("SELECT sum_y, comission FROM orders WHERE order_id = ?", (acc_id,))
         result = cursor.fetchone()
         return result  # Возвращает кортеж с полями строки или None
     except Exception as e:

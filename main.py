@@ -212,7 +212,7 @@ async def result(message: Message, state: FSMContext):
     if message.text.count('\n') >= 6:
         await message.answer(f'<b>Заказ принят!</b>\n\n'
                              f'Ожидайте подтверждения, для совершения оплаты!\n'
-                             f'(курс может варьироваться, фактическая итоговая стоимость заказа будет отображена после подтверждения)',
+                             f'(Курс может варьироваться, фактическая итоговая стоимость заказа будет отображена после подтверждения)',
                              reply_markup=ikb_come_home(),
                              parse_mode='HTML')
         data = await state.get_data()
@@ -220,7 +220,7 @@ async def result(message: Message, state: FSMContext):
         cours = get_cours()[0]
         comission = get_price_comission(data.get('kat'))[0]
         res = int(price * cours + 1000 + comission)
-        order_id = await add_order([message.from_user.id, message.from_user.username, res])
+        order_id = await add_order([message.from_user.id, message.from_user.username, res, price, comission])
         await bot.send_photo(chat_id=1006103801,
                        caption=f'🙎‍♂️ Клиент: @{message.from_user.username}\n'
                                f'🔗 Ссылка на товар: {data.get("link")}\n'
@@ -256,9 +256,13 @@ async def order_kat(callback: CallbackQuery, state: FSMContext):
     user_info = await get_order_by_id(callback.data[3:])
     id = await get_current_propts_id()
     data = await get_payment_data_by_id(id)
+    price = await get_sum_y(callback.data[3:])
+    cours = get_cours()[0]
+    res = int(int(price[0]) * cours + int(price[1]) + 1000)
     await callback.message.answer(f'Заказ подтверждён!\n\n'
                                   f'‍🙎‍♂️ Клиент: @{user_info[2]}\n'
-                                  f'💸 Сумма: {user_info[3]}₽')
+                                  f'💸 Сумма отображаемая у клиента: {user_info[3]}₽\n'
+                                  f'💰 Сумма к оплате: {res}₽')
     await bot.send_message(chat_id=int(user_info[1]),
                            text='🚨 Убедительная просьба, будьте предельно внимательны на этапе оплаты, сверяйте СУММУ, ИМЯ и БАНК получателя!')
     await bot.send_message(chat_id=int(user_info[1]),
@@ -267,7 +271,7 @@ async def order_kat(callback: CallbackQuery, state: FSMContext):
                                 f'<code>📲 {data[1]}</code>\n'
                                 f'🏦 {data[0]}\n'
                                 f'👤 Фёдор П.\n\n'
-                                f'К оплате:  <b>{user_info[3]}₽</b>\n'
+                                f'К оплате: <b>{res}₽</b>\n'
                                 f'После оплаты отправьте чек в PDF формате, пожалуйста',
                            parse_mode='HTML')
 
@@ -410,10 +414,11 @@ async def change_cours_bd(callback: CallbackQuery, state: FSMContext):
 async def course_change(message: Message, state: FSMContext):
     try:
         n = float(message.text)
-        if not n.is_integer():
+        if not n.is_integer() or '.0' in str(n):
             await change_cours(n)
             await message.answer(f'Курс успешно изменён!\n\n'
-                                 f'Новый курс: {get_cours()[0]}')
+                                 f'Новый курс: {get_cours()[0]}',
+                                 reply_markup=ikb_come_home())
             await state.clear()
         else:
             await message.answer('Вы ввели не вещественное число, попробуйте ещё раз!')
