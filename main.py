@@ -2,7 +2,8 @@ from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
-from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto
+from aiogram.fsm.storage.base import StorageKey
+from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto, Document
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import FSInputFile
@@ -38,6 +39,7 @@ class Client(StatesGroup):
     mail = State()
     number_propt = State()
     bank_propt = State()
+    check = State()
 
 
 @dp.message(Command("start"), StateFilter('*'))
@@ -274,6 +276,25 @@ async def order_kat(callback: CallbackQuery, state: FSMContext):
                                 f'К оплате: <b>{res}₽</b>\n'
                                 f'После оплаты отправьте чек в PDF формате, пожалуйста',
                            parse_mode='HTML')
+    fsm_context = FSMContext(storage=storage, key=StorageKey(
+        chat_id=int(user_info[1]),
+        user_id=int(user_info[1]),
+        bot_id=bot.id
+    ))
+    await fsm_context.set_state(Client.check)
+
+
+@dp.message(StateFilter(Client.check))
+async def check(message: Message, state: FSMContext):
+    if message.document:
+        document: Document = message.document
+        file_id = document.file_id
+
+        await bot.send_document(chat_id=1006103801, document=file_id)
+        await message.answer("Чек успешно отправлен.")
+        await state.clear()
+    else:
+        await message.answer("Отправьте, пожалуйста, PDF-файл с чеком.")
 
 
 @dp.callback_query(F.data == 'often_quest')
