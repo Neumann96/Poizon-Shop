@@ -300,8 +300,12 @@ async def check(message: Message, state: FSMContext):
         data = await state.get_data()
         await bot.send_document(chat_id=1006103801,
                                 document=file_id,
-                                caption=f'‍🙎‍♂️ Клиент: @{data.get('user')}\n'
-                                        f'💸 Сумма отображаемая у клиента: {data.get('sum')}₽')
+                                caption=f'‍🙎‍♂️ Клиент: @{data.get("user")}\n'
+                                        f'💸 Сумма отображаемая у клиента: {data.get("sum")}₽')
+        # await bot.send_document(chat_id=6773782194,
+        #                         document=file_id,
+        #                         caption=f'‍🙎‍♂️ Клиент: @{data.get("user")}\n'
+        #                                 f'💸 Сумма отображаемая у клиента: {data.get("sum")}₽')
         await message.answer("Чек успешно отправлен.",
                              reply_markup=ikb_come_home())
         await state.clear()
@@ -380,7 +384,7 @@ async def res_calc2(message: Message, state: FSMContext):
 @dp.message(Command('admin'), StateFilter('*'))
 async def admin(message: Message, state: FSMContext):
     await state.clear()
-    if message.from_user.username == 'nmnn96' or message.from_user.username == 'lottematte':
+    if message.from_user.id == 1006103801 or message.from_user.id == 6773782194:
         await message.answer(text='Выбери раздел:',
                          reply_markup=ikb_admin())
     else:
