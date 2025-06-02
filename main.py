@@ -59,6 +59,7 @@ async def start_command(message: Message, state: FSMContext):
 @dp.callback_query(StateFilter('*'), F.data == 'home')
 async def come_home(callback: CallbackQuery, state: FSMContext):
     await callback.message.delete()
+    await callback.answer()
     await state.clear()
     photo = FSInputFile("media/pumba_pic.jpg")
     await bot.send_photo(chat_id=callback.message.chat.id,
@@ -71,6 +72,7 @@ async def come_home(callback: CallbackQuery, state: FSMContext):
 @dp.callback_query(F.data == 'make_order')
 async def make_order(callback: CallbackQuery, state: FSMContext):
     await callback.message.delete()
+    await callback.answer()
     await callback.message.answer(calc_text,
                                   reply_markup=get_ikb_kat())
     await state.set_state(Client.order_kat)
@@ -79,6 +81,7 @@ async def make_order(callback: CallbackQuery, state: FSMContext):
 @dp.callback_query(F.data == 'instructions')
 async def instructions(callback: CallbackQuery, state: FSMContext):
     await callback.message.delete()
+    await callback.answer()
     await callback.message.answer('Выберите раздел:',
                                   reply_markup=ikb_instruction())
 
@@ -86,6 +89,7 @@ async def instructions(callback: CallbackQuery, state: FSMContext):
 @dp.callback_query(F.data == 'log_acc')
 async def log_acc(callback: CallbackQuery, state: FSMContext):
     await callback.message.delete()
+    await callback.answer()
     file1 = FSInputFile('media/log_acc_1.jpg')
     file2 = FSInputFile('media/log_acc_2.jpg')
     file3 = FSInputFile('media/log_acc_3.jpg')
@@ -105,6 +109,7 @@ async def log_acc(callback: CallbackQuery, state: FSMContext):
 @dp.callback_query(F.data == 'guide')
 async def quide(callback: CallbackQuery, state: FSMContext):
     await callback.message.delete()
+    await callback.answer()
     file1 = FSInputFile('media/guide_1.jpg')
     file2 = FSInputFile('media/guide_2.jpg')
     file3 = FSInputFile('media/guide_3.jpg')
@@ -274,13 +279,16 @@ async def order_kat(callback: CallbackQuery, state: FSMContext):
                                 f'🏦 {data[0]}\n'
                                 f'👤 Фёдор П.\n\n'
                                 f'К оплате: <b>{res}₽</b>\n'
-                                f'После оплаты отправьте чек в PDF формате, пожалуйста',
+                                f'После оплаты отправьте чек в PDF формате, пожалуйста\n'
+                                f'(Убедительная просьба не переходить в другие меню бота, пока не отправите чек. '
+                                f'Чек отправляйте просто после этого сообщения. Спасибо!)',
                            parse_mode='HTML')
     fsm_context = FSMContext(storage=storage, key=StorageKey(
         chat_id=int(user_info[1]),
         user_id=int(user_info[1]),
         bot_id=bot.id
     ))
+    await fsm_context.update_data(user=user_info[2], sum=user_info[3])
     await fsm_context.set_state(Client.check)
 
 
@@ -289,9 +297,13 @@ async def check(message: Message, state: FSMContext):
     if message.document:
         document: Document = message.document
         file_id = document.file_id
-
-        await bot.send_document(chat_id=1006103801, document=file_id)
-        await message.answer("Чек успешно отправлен.")
+        data = await state.get_data()
+        await bot.send_document(chat_id=1006103801,
+                                document=file_id,
+                                caption=f'‍🙎‍♂️ Клиент: @{data.get('user')}\n'
+                                        f'💸 Сумма отображаемая у клиента: {data.get('sum')}₽')
+        await message.answer("Чек успешно отправлен.",
+                             reply_markup=ikb_come_home())
         await state.clear()
     else:
         await message.answer("Отправьте, пожалуйста, PDF-файл с чеком.")
