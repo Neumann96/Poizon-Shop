@@ -379,7 +379,7 @@ async def res_calc2(message: Message, state: FSMContext):
     if message.text.isdigit():
         price = int(message.text)
         cours = get_cours()[0]
-        comission = get_price_comission(name[5:])[0]
+        comission = get_price_comission(name[5:])[0][0]
         res = int(price * cours + 1000 + comission)
         await message.bot.send_message(chat_id=message.from_user.id,
                                        text=f'💳 Итоговая стоимость заказа: <b>{res} рублей</b>\n\n'
