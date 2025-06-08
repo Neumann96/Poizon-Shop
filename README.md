@@ -1,1 +1,1 @@
-Link to bot: https://t.me/Pumba_ShopBot (@Pumba_ShopBot)
+Link to bot: https://t.me/LogisticByPumba_Bot (@LogisticByPumba_Bot)
