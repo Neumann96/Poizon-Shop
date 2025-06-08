@@ -25,7 +25,7 @@ def get_ikb_start():
                 InlineKeyboardButton(text='❓ Частые вопросы', callback_data='often_quest'),
                 InlineKeyboardButton(text='📩 Задать вопрос', url='https://t.me/lottematte'),
                 InlineKeyboardButton(text='📲 Скачать POIZON iOS', url='https://apps.apple.com/am/app/%E5%BE%97%E7%89%A9-%E5%BE%97%E5%88%B0%E7%BE%8E%E5%A5%BD%E4%BA%8B%E7%89%A9/id1012871328'),
-                InlineKeyboardButton(text='🤖 Скачать POIZON Android', url='https://www.anxinapk.com/rj/12201303.html'),)
+                InlineKeyboardButton(text='🤖 Скачать POIZON Android', url='https://www.dewu.com/'),)
     builder.adjust(1)
     return builder.as_markup()
 
