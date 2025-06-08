@@ -118,6 +118,14 @@ def ikb_change_or_add():
     return builder.as_markup()
 
 
+def ikb_close_size():
+    builder = InlineKeyboardBuilder()
+    builder.add(InlineKeyboardButton(text='❌ Нет размера', callback_data='close_size'),
+                InlineKeyboardButton(text='🏠 На главную', callback_data='home'))
+    builder.adjust(1)
+    return builder.as_markup()
+
+
 def ikb_propts():
     builder = InlineKeyboardBuilder()
 

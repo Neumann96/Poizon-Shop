@@ -164,22 +164,29 @@ async def link(message: Message, state: FSMContext):
         await message.answer(text='📏 Пожалуйста, напишите размер товара (актуально для одежды и обуви).\n\n'
                              'Например: 42',
                              parse_mode='HTML',
-                             reply_markup=ikb_come_home())
+                             reply_markup=ikb_close_size())
         await state.set_state(Client.size)
     else:
         await message.answer('Это не ссылка, отправьте, пожалйуста, ссылку!')
 
 
+@dp.callback_query(StateFilter(Client.size) and F.data == 'close_size')
+async def size(callback: CallbackQuery, state: FSMContext):
+    await callback.answer('Размера нет у позиции')
+    await state.update_data(size='-')
+    await callback.message.answer(text='❕Введите стоимость выбранной вами позиции в Юанях:',
+                         parse_mode='HTML',
+                         reply_markup=ikb_come_home())
+    await state.set_state(Client.price)
+
+
 @dp.message(StateFilter(Client.size))
 async def size(message: Message, state: FSMContext):
-    if message.text.isdigit() or '.' in message.text or ',' in message.text:
-        await state.update_data(size=message.text)
-        await message.answer(text='❕Введите стоимость выбранной вами позиции в Юанях:',
-                             parse_mode='HTML',
-                             reply_markup=ikb_come_home())
-        await state.set_state(Client.price)
-    else:
-        await message.answer('Введите, пожалуйста, размер!')
+    await state.update_data(size=message.text)
+    await message.answer(text='❕Введите стоимость выбранной вами позиции в Юанях:',
+                         parse_mode='HTML',
+                         reply_markup=ikb_come_home())
+    await state.set_state(Client.price)
 
 
 @dp.message(StateFilter(Client.price))
