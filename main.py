@@ -161,8 +161,7 @@ async def link(message: Message, state: FSMContext):
     if 'https://dw4.co' in message.text:
         match = re.search(r'https?://\S+', message.text)
         await state.update_data(link=match.group())
-        await message.answer(text='📏 Пожалуйста, напишите размер товара (актуально для одежды и обуви).\n\n'
-                             'Например: 42',
+        await message.answer(text=size_text,
                              parse_mode='HTML',
                              reply_markup=ikb_close_size())
         await state.set_state(Client.size)
@@ -172,7 +171,7 @@ async def link(message: Message, state: FSMContext):
 
 @dp.callback_query(StateFilter(Client.size) and F.data == 'close_size')
 async def size(callback: CallbackQuery, state: FSMContext):
-    await callback.answer('Размера нет у позиции')
+    await callback.answer('Размера у позиции нет')
     await state.update_data(size='-')
     await callback.message.answer(text='❕Введите стоимость выбранной вами позиции в Юанях:',
                          parse_mode='HTML',
