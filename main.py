@@ -195,13 +195,15 @@ async def price(message: Message, state: FSMContext):
         data = await state.get_data()
         price = int(data.get('price'))
         cours = get_cours()[0]
-        comission = get_price_comission(data.get('kat'))[0]
-        res = int(price * cours + 1000 + comission)
+        comission = get_price_comission(data.get('kat'))
+        then_price = comission[0][1]
+        comission = comission[0][0]
+        res = int(price * cours + 1000 + comission - then_price)
         await bot.send_photo(chat_id=message.chat.id,
                              caption=f'🔗 Ссылка на товар: {data.get("link")}\n'
                                      f'🧩 Размер: {data.get("size")}\n'
                                      f'💴 Стоимость товара в Юанях: {data.get("price")}¥\n'
-                                     f'💳 Итоговая стоимость заказа: {res}₽\n\n'
+                                     f'💳 Итоговая стоимость заказа: {res}₽ ({then_price}₽ при получении)\n\n'
                                      f'Проверьте, пожалуйста, правильность введенных вами данных!',
                              photo=data.get('photo_id'),
                              parse_mode='HTML',
@@ -231,9 +233,11 @@ async def result(message: Message, state: FSMContext):
         data = await state.get_data()
         price = int(data.get('price'))
         cours = get_cours()[0]
-        comission = get_price_comission(data.get('kat'))[0]
-        res = int(price * cours + 1000 + comission)
-        order_id = await add_order([message.from_user.id, message.from_user.username, res, price, comission])
+        comission = get_price_comission(data.get('kat'))
+        then_price = comission[0][1]
+        comission = comission[0][0]
+        res = int(price * cours + 1000 + comission - then_price)
+        order_id = await add_order([message.from_user.id, message.from_user.username, res, price, comission, then_price])
         await bot.send_photo(chat_id=1006103801,
                        caption=f'🙎‍♂️ Клиент: @{message.from_user.username}\n'
                                f'🔗 Ссылка на товар: {data.get("link")}\n'
@@ -269,9 +273,10 @@ async def order_kat(callback: CallbackQuery, state: FSMContext):
     user_info = await get_order_by_id(callback.data[3:])
     id = await get_current_propts_id()
     data = await get_payment_data_by_id(id)
-    price = await get_sum_y(callback.data[3:])
+    price_y = user_info[4]
+    comission = user_info[5]
     cours = get_cours()[0]
-    res = int(int(price[0]) * cours + int(price[1]) + 1000)
+    res = int(price_y * cours + comission + 1000 - user_info[6])
     await callback.message.answer(f'Заказ подтверждён!\n\n'
                                   f'‍🙎‍♂️ Клиент: @{user_info[2]}\n'
                                   f'💸 Сумма отображаемая у клиента: {user_info[3]}₽\n'
@@ -284,7 +289,7 @@ async def order_kat(callback: CallbackQuery, state: FSMContext):
                                 f'<code>📲 {data[1]}</code>\n'
                                 f'🏦 {data[0]}\n'
                                 f'👤 Фёдор П.\n\n'
-                                f'К оплате: <b>{res}₽</b>\n'
+                                f'К оплате: <b>{res}₽</b>\n\n'
                                 f'После оплаты отправьте чек в PDF формате, пожалуйста\n'
                                 f'(Убедительная просьба не переходить в другие меню бота, пока не отправите чек. '
                                 f'Чек отправляйте просто после этого сообщения. Спасибо!)',
