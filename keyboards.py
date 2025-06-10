@@ -133,12 +133,12 @@ def ikb_propts():
     cursor = connect.cursor()
 
     try:
-        cursor.execute("SELECT id, bank, number FROM propts")
+        cursor.execute("SELECT id, bank, number, recipient FROM propts")
         rows = cursor.fetchall()
 
         for row in rows:
-            acc_id, bank, number = row
-            text = f"{bank} | {number}"  # Одной строкой, без переноса
+            acc_id, bank, number, recipient = row
+            text = f"{bank} | {number} | {recipient}"  # Одной строкой, без переноса
             builder.row(
                 InlineKeyboardButton(
                     text=text,

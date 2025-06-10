@@ -40,6 +40,7 @@ class Client(StatesGroup):
     number_propt = State()
     bank_propt = State()
     check = State()
+    recipient_propt = State()
 
 
 @dp.message(Command("start"), StateFilter('*'))
@@ -288,7 +289,7 @@ async def order_kat(callback: CallbackQuery, state: FSMContext):
                                 f'Реквизиты для оплаты:\n\n'
                                 f'<code>📲 {data[1]}</code>\n'
                                 f'🏦 {data[0]}\n'
-                                f'👤 Фёдор П.\n\n'
+                                f'👤 {data[3]}\n\n'
                                 f'К оплате: <b>{res}₽</b>\n\n'
                                 f'После оплаты отправьте чек в PDF формате, пожалуйста\n'
                                 f'(Убедительная просьба не переходить в другие меню бота, пока не отправите чек. '
@@ -422,15 +423,22 @@ async def add_number_propt(message: Message, state: FSMContext):
     if message.text.isdigit():
         await state.update_data(number_propt=message.text)
         await message.answer('Теперь напиши банк\n\n(То, что ты сейчас напишешь, будет отображаться в реквизитах у клиента)')
-        await state.set_state(Client.bank_propt)
+        await state.set_state(Client.recipient_propt)
     else:
         await message.answer('Ты отправил не номер)')
+
+
+@dp.message(StateFilter(Client.recipient_propt))
+async def add_number_propt(message: Message, state: FSMContext):
+    await state.update_data(bank_propt=message.text)
+    await message.answer('Теперь напиши ФИО получателя (Как напишешь, так и будет отображаться у клиента)')
+    await state.set_state(Client.bank_propt)
 
 
 @dp.message(StateFilter(Client.bank_propt))
 async def add_bank_propt(message: Message, state: FSMContext):
     info = await state.get_data()
-    await add_propt([message.text, info.get('number_propt')])
+    await add_propt([info.get('bank_propt'), info.get('number_propt'), message.text])
     await message.answer('Добавил новые реквизиты!')
     await state.clear()
 

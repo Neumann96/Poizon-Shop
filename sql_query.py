@@ -67,8 +67,8 @@ async def add_propt(info):
     try:
         # Предполагается, что info — это список из [user_id, username, sum]
         cursor.execute(
-            'INSERT INTO propts(bank, number) VALUES (?, ?);',
-            (info[0], info[1])
+            'INSERT INTO propts(bank, number, recipient) VALUES (?, ?, ?);',
+            (info[0], info[1], info[2])
         )
         connect.commit()
     except Exception as e:
