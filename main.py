@@ -29,6 +29,7 @@ name = ''
 class Client(StatesGroup):
     calc_price = State()
     cours = State()
+    waiting_new_price = State()
     order_kat = State()
     picture = State()
     link = State()
@@ -41,6 +42,7 @@ class Client(StatesGroup):
     bank_propt = State()
     check = State()
     recipient_propt = State()
+    delivery = State()
 
 
 @dp.message(Command("start"), StateFilter('*'))
@@ -190,29 +192,43 @@ async def size(message: Message, state: FSMContext):
 
 
 @dp.message(StateFilter(Client.price))
-async def price(message: Message, state: FSMContext):
+async def delivery(message: Message, state: FSMContext):
     if message.text.isdigit():
         await state.update_data(price=message.text)
-        data = await state.get_data()
-        price = int(data.get('price'))
-        cours = get_cours()[0]
-        comission = get_price_comission(data.get('kat'))
-        then_price = comission[0][1]
-        comission = comission[0][0]
-        res = int(price * cours + 1000 + comission - then_price)
-        await bot.send_photo(chat_id=message.chat.id,
-                             caption=f'🔗 Ссылка на товар: {data.get("link")}\n'
-                                     f'🧩 Размер: {data.get("size")}\n'
-                                     f'💴 Стоимость товара в Юанях: {data.get("price")}¥\n'
-                                     f'💳 Итоговая стоимость заказа: {res}₽ (~{then_price}₽ при получении)\n\n'
-                                     f'Проверьте, пожалуйста, правильность введенных вами данных!',
-                             photo=data.get('photo_id'),
-                             parse_mode='HTML',
-                             reply_markup=ikb_done()
-                             )
-        await state.set_state(Client.done)
+        await message.answer(text='🚚 Выберите удобный способ доставки:',
+                                      reply_markup=ikb_choose_delivery())
+        await state.set_state(Client.delivery)
     else:
         await message.answer('Введите, пожалуйста, стоимость!')
+
+
+@dp.callback_query(StateFilter(Client.delivery))
+async def price(callback: Message, state: FSMContext):
+    await state.update_data(delivery=callback.data)
+    await callback.answer()
+    data = await state.get_data()
+    price = int(data.get('price'))
+    cours = get_cours()[0]
+    comission = get_price_comission(data.get('kat'))
+    then_price = comission[0][1]
+    fast_comiss = comission[0][2]
+    comission = comission[0][0]
+    if data.get('delivery') == 'fast':
+        res = int(price * cours + 1000 + fast_comiss)
+    else:
+        res = int(price * cours + 1000 + comission)
+    await bot.send_photo(chat_id=callback.message.chat.id,
+                         caption=f'🔗 Ссылка на товар: {data.get("link")}\n'
+                                 f'🧩 Размер: {data.get("size")}\n'
+                                 f'💴 Стоимость товара в Юанях: {data.get("price")}¥\n'
+                                 f'🚚 Вид доставки: {"Быстрая" if data.get("delivery") == "fast" else "Обычная"}\n'
+                                 f'💳 Итоговая стоимость заказа: {res}₽\n\n'
+                                 f'Проверьте, пожалуйста, правильность введенных вами данных!',
+                         photo=data.get('photo_id'),
+                         parse_mode='HTML',
+                         reply_markup=ikb_done()
+                         )
+    await state.set_state(Client.done)
 
 
 @dp.callback_query(StateFilter(Client.done))
@@ -225,7 +241,7 @@ async def send_mail_info(callback: CallbackQuery, state: FSMContext):
 
 @dp.message(StateFilter(Client.mail))
 async def result(message: Message, state: FSMContext):
-    if message.text.count('\n') >= 6:
+    if message.text.count('\n') >= 2:
         await message.answer(f'<b>Заказ принят!</b>\n\n'
                              f'Ожидайте подтверждения, для совершения оплаты!\n'
                              f'(Курс может варьироваться, фактическая итоговая стоимость заказа будет отображена после подтверждения)',
@@ -236,8 +252,12 @@ async def result(message: Message, state: FSMContext):
         cours = get_cours()[0]
         comission = get_price_comission(data.get('kat'))
         then_price = comission[0][1]
+        fast_comiss = comission[0][2]
         comission = comission[0][0]
-        res = int(price * cours + 1000 + comission - then_price)
+        if data.get('delivery') == 'fast':
+            res = int(price * cours + 1000 + fast_comiss)
+        else:
+            res = int(price * cours + 1000 + comission)
         order_id = await add_order([message.from_user.id, message.from_user.username, res, price, comission, then_price])
         await bot.send_photo(chat_id=1006103801,
                        caption=f'🙎‍♂️ Клиент: @{message.from_user.username}\n'
@@ -246,23 +266,24 @@ async def result(message: Message, state: FSMContext):
                                f'💴 Стоимость товара в Юанях: {data.get("price")}¥\n'
                                f'💳 Итоговая стоимость заказа: {res}₽\n'
                                f'📊 Курс: {cours}\n\n'
-                               f'Информация по доставке:\n'
+                               f'🚚 Информация по доставке:\n\n'
+                               f'Тип: {"<b><u>Быстрая</u></b>" if data.get("delivery") == "fast" else "<b>Обычная</b>"}\n\n'
                                f'{message.text}',
                        photo=data.get('photo_id'),
-                       reply_markup=ikb_sign(order_id),
+                       reply_markup=ikb_sign(order_id, res),
                        parse_mode='HTML')
-        # await bot.send_photo(chat_id=6773782194,
-        #                      caption=f'🙎‍♂️ Клиент: @{message.from_user.username}\n'
-        #                              f'🔗 Ссылка на товар: {data.get("link")}\n'
-        #                              f'🧩 Размер: {data.get("size")}\n'
-        #                              f'💴 Стоимость товара в Юанях: {data.get("price")}¥\n'
-        #                              f'💳 Итоговая стоимость заказа: {res}₽\n'
-        #                              f'📊 Курс: {cours}\n\n'
-        #                              f'Информация по доставке:\n'
-        #                              f'{message.text}',
-        #                      photo=data.get('photo_id'),
-        #                      reply_markup=ikb_sign(order_id),
-        #                      parse_mode='HTML')
+        await bot.send_photo(chat_id=6773782194,
+                             caption=f'🙎‍♂️ Клиент: @{message.from_user.username}\n'
+                                     f'🔗 Ссылка на товар: {data.get("link")}\n'
+                                     f'🧩 Размер: {data.get("size")}\n'
+                                     f'💴 Стоимость товара в Юанях: {data.get("price")}¥\n'
+                                     f'💳 Итоговая стоимость заказа: {res}₽\n'
+                                     f'📊 Курс: {cours}\n\n'
+                                     f'Информация по доставке:\n'
+                                     f'{message.text}',
+                             photo=data.get('photo_id'),
+                             reply_markup=ikb_sign(order_id, res),
+                             parse_mode='HTML')
         await state.clear()
     else:
         await message.answer('Ваше сообщение не соответствует нужному формату, попробуйте ещё раз!')
@@ -271,13 +292,16 @@ async def result(message: Message, state: FSMContext):
 @dp.callback_query(lambda c: c.data.startswith("id_"))
 async def order_kat(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
-    user_info = await get_order_by_id(callback.data[3:])
+    user_info = await get_order_by_id(callback.data.split("_")[1])
+    if len(callback.data.split("_")) == 3:
+        res = int(callback.data.split("_")[2])
+    else:
+        price_y = user_info[4]
+        comission = user_info[5]
+        cours = get_cours()[0]
+        res = int(price_y * cours + comission + 1000 - user_info[6])
     id = await get_current_propts_id()
     data = await get_payment_data_by_id(id)
-    price_y = user_info[4]
-    comission = user_info[5]
-    cours = get_cours()[0]
-    res = int(price_y * cours + comission + 1000 - user_info[6])
     await callback.message.answer(f'Заказ подтверждён!\n\n'
                                   f'‍🙎‍♂️ Клиент: @{user_info[2]}\n'
                                   f'💸 Сумма отображаемая у клиента: {user_info[3]}₽\n'
@@ -304,6 +328,43 @@ async def order_kat(callback: CallbackQuery, state: FSMContext):
     await fsm_context.set_state(Client.check)
 
 
+@dp.callback_query(F.data.startswith("change_id_"))
+async def process_change_price(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    try:
+        _, _, order_id, old_price = callback.data.split("_")
+    except ValueError:
+        # если в callback пока нет цены (старый формат), подставляем 0
+        _, order_id = callback.data.split("_")
+        old_price = "0"
+
+    await state.update_data(order_id=order_id)
+    await callback.message.answer(
+        f"Текущая цена: {old_price} ₽\nВведите новую стоимость заказа:"
+    )
+    await state.set_state(Client.waiting_new_price)
+
+
+# ------------------ Хендлер: ввод новой цены ------------------
+@dp.message(Client.waiting_new_price)
+async def save_new_price(message: Message, state: FSMContext):
+    if not message.text.isdigit():
+        await message.answer("Введите корректное число (только цифры).")
+        return
+
+    new_price = int(message.text)
+    data = await state.get_data()
+    order_id = data["order_id"]
+
+    # отправляем админу новую клавиатуру подтверждения
+    await message.answer(
+        f"Новая цена: {new_price} ₽. Подтвердить?",
+        reply_markup=ikb_sign(order_id, new_price)
+    )
+    data = await state.get_data()
+    await state.clear()
+
+
 @dp.message(StateFilter(Client.check))
 async def check(message: Message, state: FSMContext):
     if message.document:
@@ -314,10 +375,10 @@ async def check(message: Message, state: FSMContext):
                                 document=file_id,
                                 caption=f'‍🙎‍♂️ Клиент: @{data.get("user")}\n'
                                         f'💸 Сумма отображаемая у клиента: {data.get("sum")}₽')
-        # await bot.send_document(chat_id=6773782194,
-        #                         document=file_id,
-        #                         caption=f'‍🙎‍♂️ Клиент: @{data.get("user")}\n'
-        #                                 f'💸 Сумма отображаемая у клиента: {data.get("sum")}₽')
+        await bot.send_document(chat_id=6773782194,
+                                document=file_id,
+                                caption=f'‍🙎‍♂️ Клиент: @{data.get("user")}\n'
+                                        f'💸 Сумма отображаемая у клиента: {data.get("sum")}₽')
         await message.answer("Чек успешно отправлен.",
                              reply_markup=ikb_come_home())
         await state.clear()
@@ -335,23 +396,24 @@ async def quest(callback: CallbackQuery):
 @dp.callback_query(F.data == 'time_delivery')
 async def quest_1(callback: CallbackQuery):
     await callback.message.delete()
-    await callback.message.answer('Доставка занимает от 3 до 5 недель с момента прибытия товара '
-                                  'на склад в Китае. Срок может незначительно варьироваться в зависимости от вашего города.',
+    await callback.message.answer('Обычная доставка занимает приблизительно 3 недели с момента прибытия товара на склад в Китае. '
+                                  'Срок может незначительно варьироваться в зависимости от вашего города.\n\n'
+                                  '❕Авиа-доставка (Быстрая) занимает до 2 до 7 дней до Москвы с момента прибытия товара на склад в Китае.',
                                   reply_markup=ikb_come_quest())
 
 
 @dp.callback_query(F.data == 'trans_comp')
 async def quest_2(callback: CallbackQuery):
     await callback.message.delete()
-    await callback.message.answer('По России все заказы доставляются через Почту России.',
+    await callback.message.answer('По России все заказы отправляются через компанию CDEK.',
                                   reply_markup=ikb_come_quest())
 
 
 @dp.callback_query(F.data == 'track_order')
 async def quest_3(callback: CallbackQuery):
     await callback.message.delete()
-    await callback.message.answer('Как только посылка будет передана в доставку по '
-                                  'России, вы получите SMS-уведомление с информацией для отслеживания.',
+    await callback.message.answer('Как только посылка будет передана в доставку по России, '
+                                  'в вашем личном кабинете CDEK автоматически появится нужное отправление.',
                                   reply_markup=ikb_come_quest())
 
 

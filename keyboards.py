@@ -9,10 +9,18 @@ def ikb_come_home():
     return builder.as_markup()
 
 
+def ikb_choose_delivery():
+    builder = InlineKeyboardBuilder()
+    builder.add(InlineKeyboardButton(text='✈️ Быстрая (от 2 до 7 дней)', callback_data='fast'),
+                InlineKeyboardButton(text='🐢 Обычная (~3 недели)', callback_data='default'),
+                InlineKeyboardButton(text='🏠 На главную', callback_data='home'))
+    builder.adjust(2, 1)
+    return builder.as_markup()
+
 def ikb_home_order():
     builder = InlineKeyboardBuilder()
-    builder.add(InlineKeyboardButton(text='🏠 На главную', callback_data='home'),
-                InlineKeyboardButton(text='🧾 Оформить заказ', callback_data='make_order'))
+    builder.add(InlineKeyboardButton(text='Обычная ', callback_data='make_order'),
+                InlineKeyboardButton(text='🏠 На главную', callback_data='home'))
     return builder.as_markup()
 
 
@@ -95,9 +103,19 @@ def ikb_come_instr():
     return builder.as_markup()
 
 
-def ikb_sign(order_id):
+def ikb_sign(order_id, price):
     builder = InlineKeyboardBuilder()
-    builder.add(InlineKeyboardButton(text='✅ Подтвердить', callback_data=f'id_{order_id}'))
+    builder.add(
+        InlineKeyboardButton(
+            text='✅ Подтвердить',
+            callback_data=f'id_{order_id}_{price}'
+        ),
+        InlineKeyboardButton(
+            text='✍️ Изменить стоимость и подтвердить',
+            callback_data=f'change_id_{order_id}_{price}'
+        )
+    )
+    builder.adjust(1)
     return builder.as_markup()
 
 

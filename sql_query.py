@@ -5,7 +5,7 @@ def get_price_comission(name):
         connect = sqlite3.connect('Poizon.db')
         cursor = connect.cursor()
 
-        res = cursor.execute("SELECT price, then_price FROM comissions WHERE name = ?", [name]).fetchall()
+        res = cursor.execute("SELECT price, then_price, fast_price FROM comissions WHERE name = ?", [name]).fetchall()
         return res
 
 
