@@ -82,6 +82,7 @@ def ikb_where_link():
 def ikb_done():
     builder = InlineKeyboardBuilder()
     builder.add(InlineKeyboardButton(text='📝 Изменить', callback_data='make_order'),
+                InlineKeyboardButton(text='➕ Добавить товар', callback_data='add_product'),
                 InlineKeyboardButton(text='✅ Верно', callback_data='done_order'),
                 InlineKeyboardButton(text='🏠 На главную', callback_data='home'))
     builder.adjust(1)

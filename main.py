@@ -7,6 +7,7 @@ from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKe
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import FSInputFile
+
 from texts import *
 import re
 
@@ -24,7 +25,7 @@ bot = Bot(token=token, proxy=proxy_url)
 dp = Dispatcher(storage=storage)
 
 name = ''
-
+basket = {}
 
 class Client(StatesGroup):
     calc_price = State()
@@ -134,7 +135,9 @@ async def quide(callback: CallbackQuery, state: FSMContext):
 @dp.callback_query(lambda c: c.data.startswith("calc_"), StateFilter(Client.order_kat))
 async def order_kat(callback: CallbackQuery, state: FSMContext):
     photo = FSInputFile("media/example.PNG")
+    global basket
     await state.update_data(kat=callback.data[5:])
+    basket["kat"] = callback.data[5:]
     await callback.message.delete()
     await callback.bot.send_photo(chat_id=callback.message.chat.id,
                                   photo=photo,
@@ -153,6 +156,8 @@ async def picture(message: Message, state: FSMContext):
     photo = message.photo[-1]
     file_id = photo.file_id
     await state.update_data(photo_id=file_id)
+    global basket
+    basket["photo_id"] = file_id
     await message.answer(text="<b>🔗 Пожалуйста, отправьте ссылку на товар</b>",
                          reply_markup=ikb_where_link(),
                          parse_mode="HTML")
@@ -164,6 +169,8 @@ async def link(message: Message, state: FSMContext):
     if 'https://dw4.co' in message.text:
         match = re.search(r'https?://\S+', message.text)
         await state.update_data(link=match.group())
+        global basket
+        basket["link"] = match.group()
         await message.answer(text=size_text,
                              parse_mode='HTML',
                              reply_markup=ikb_close_size())
@@ -176,6 +183,8 @@ async def link(message: Message, state: FSMContext):
 async def size(callback: CallbackQuery, state: FSMContext):
     await callback.answer('Размера у позиции нет')
     await state.update_data(size='-')
+    global basket
+    basket["size"] = '-'
     await callback.message.answer(text='❕Введите стоимость выбранной вами позиции в Юанях:',
                          parse_mode='HTML',
                          reply_markup=ikb_come_home())
@@ -185,6 +194,8 @@ async def size(callback: CallbackQuery, state: FSMContext):
 @dp.message(StateFilter(Client.size))
 async def size(message: Message, state: FSMContext):
     await state.update_data(size=message.text)
+    global basket
+    basket["size"] = message.text
     await message.answer(text='❕Введите стоимость выбранной вами позиции в Юанях:',
                          parse_mode='HTML',
                          reply_markup=ikb_come_home())
@@ -195,6 +206,8 @@ async def size(message: Message, state: FSMContext):
 async def delivery(message: Message, state: FSMContext):
     if message.text.isdigit():
         await state.update_data(price=message.text)
+        global basket
+        basket["price"] = message.text
         await message.answer(text='🚚 Выберите удобный способ доставки:',
                                       reply_markup=ikb_choose_delivery())
         await state.set_state(Client.delivery)
@@ -202,36 +215,107 @@ async def delivery(message: Message, state: FSMContext):
         await message.answer('Введите, пожалуйста, стоимость!')
 
 
+async def send_album(bot, chat_id: int, file_ids: list[str]):
+    media = [InputMediaPhoto(media=file_id) for file_id in file_ids]
+    await bot.send_media_group(chat_id=chat_id, media=media)
+
+
 @dp.callback_query(StateFilter(Client.delivery))
-async def price(callback: Message, state: FSMContext):
-    await state.update_data(delivery=callback.data)
-    await callback.answer()
+async def price(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
-    price = int(data.get('price'))
+    current_basket = {
+        "kat": data.get("kat"),
+        "photo_id": data.get("photo_id"),
+        "link": data.get("link"),
+        "size": data.get("size"),
+        "price": data.get("price"),
+        "delivery": callback.data
+    }
+
+    # добавляем в basket
+    basket_list = data.get("basket", [])
+    basket_list.append(current_basket)
+    await state.update_data(basket=basket_list)
+
+    await callback.answer()
+    price = int(current_basket["price"])
+    # считаем итоговую сумму всех товаров в корзине
     cours = get_cours()[0]
-    comission = get_price_comission(data.get('kat'))
-    then_price = comission[0][1]
-    fast_comiss = comission[0][2]
-    comission = comission[0][0]
-    if data.get('delivery') == 'fast':
-        res = int(price * cours + 1000 + fast_comiss)
+    total_price = 0
+    for item in basket_list:
+        item_price = int(item["price"])
+        comission_data = get_price_comission(item["kat"])[0]
+        comission = comission_data[0]
+        fast_comiss = comission_data[2]
+
+        # если 3 или более товаров, фиксированная часть комиссии 750, иначе 1000
+        fixed_fee = 750 if len(basket_list) >= 3 else 1000
+
+        if item["delivery"] == 'fast':
+            res = int(item_price * cours + fixed_fee + fast_comiss)
+        else:
+            res = int(item_price * cours + fixed_fee + comission)
+
+        item['res_rub'] = res
+        total_price += res
+
+    # формируем текст заказа
+    caption = ""
+    for i in basket_list:
+        caption += (f'🔗 Ссылка на товар: {i["link"]}\n'
+                    f'🧩 Размер: {i["size"]}\n'
+                    f'💴 Стоимость товара в Юанях: {i["price"]}¥\n'
+                    f'💳 Итоговая стоимость: {i["res_rub"]}₽\n\n')
+
+    caption += (f'🚚 Вид доставки: {"Быстрая" if basket_list[-1]["delivery"] == "fast" else "Обычная"}\n'
+                f'💳 Общая стоимость заказа: {total_price}₽\n\n'
+                f'Проверьте, пожалуйста, правильность введенных вами данных!')
+
+    file_ids = [i["photo_id"] for i in basket_list if "photo_id" in i]
+    if len(file_ids) > 1:
+        await send_album(callback.bot, callback.message.chat.id, file_ids)
+        await callback.message.answer(caption,
+                                      disable_web_page_preview=True,
+                                      reply_markup=ikb_done(),
+                                      parse_mode='HTML')
     else:
-        res = int(price * cours + 1000 + comission)
-    await bot.send_photo(chat_id=callback.message.chat.id,
-                         caption=f'🔗 Ссылка на товар: {data.get("link")}\n'
-                                 f'🧩 Размер: {data.get("size")}\n'
-                                 f'💴 Стоимость товара в Юанях: {data.get("price")}¥\n'
-                                 f'🚚 Вид доставки: {"Быстрая" if data.get("delivery") == "fast" else "Обычная"}\n'
-                                 f'💳 Итоговая стоимость заказа: {res}₽\n\n'
-                                 f'Проверьте, пожалуйста, правильность введенных вами данных!',
-                         photo=data.get('photo_id'),
-                         parse_mode='HTML',
-                         reply_markup=ikb_done()
-                         )
-    await state.set_state(Client.done)
+        await callback.bot.send_photo(chat_id=callback.message.chat.id,
+                                      caption=caption,
+                                      photo=file_ids[0],
+                                      parse_mode='HTML',
+                                      reply_markup=ikb_done())
+
+    # **Сбрасываем только временные поля**
+    for key in ["kat", "photo_id", "link", "size", "price", "delivery"]:
+        data.pop(key, None)
+    await state.update_data(**data)
+
+    # можно сразу вернуть пользователя в выбор категории, если нужно
+    await state.set_state(Client.order_kat)
 
 
-@dp.callback_query(StateFilter(Client.done))
+@dp.callback_query(F.data == 'add_product')
+async def add_product(callback: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+
+    # сбрасываем только временные поля заказа
+    for field in ["kat", "photo_id", "link", "size", "price", "delivery"]:
+        if field in data:
+            data.pop(field)
+
+    await state.update_data(**data)  # сохраняем basket как есть
+
+    await callback.answer()
+    await callback.message.answer(
+        calc_text,
+        reply_markup=get_ikb_kat()
+    )
+    await state.set_state(Client.order_kat)
+
+
+
+
+@dp.callback_query(F.data == 'done_order')
 async def send_mail_info(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     await callback.message.answer(mail_text,
@@ -242,51 +326,76 @@ async def send_mail_info(callback: CallbackQuery, state: FSMContext):
 @dp.message(StateFilter(Client.mail))
 async def result(message: Message, state: FSMContext):
     if message.text.count('\n') >= 2:
-        await message.answer(f'<b>Заказ принят!</b>\n\n'
-                             f'Ожидайте подтверждения, для совершения оплаты!\n'
-                             f'(Курс может варьироваться, фактическая итоговая стоимость заказа будет отображена после подтверждения)',
-                             reply_markup=ikb_come_home(),
-                             parse_mode='HTML')
+        await message.answer(
+            f'<b>Заказ принят!</b>\n\n'
+            f'Ожидайте подтверждения, для совершения оплаты!\n'
+            f'(Курс может варьироваться, фактическая итоговая стоимость заказа будет отображена после подтверждения)',
+            reply_markup=ikb_come_home(),
+            parse_mode='HTML'
+        )
+
         data = await state.get_data()
-        price = int(data.get('price'))
+        basket_list = data.get("basket", [])
+
+        # считаем итоговую стоимость каждого товара и суммарную стоимость
         cours = get_cours()[0]
-        comission = get_price_comission(data.get('kat'))
-        then_price = comission[0][1]
-        fast_comiss = comission[0][2]
-        comission = comission[0][0]
-        if data.get('delivery') == 'fast':
-            res = int(price * cours + 1000 + fast_comiss)
-        else:
-            res = int(price * cours + 1000 + comission)
-        order_id = await add_order([message.from_user.id, message.from_user.username, res, price, comission, then_price])
-        await bot.send_photo(chat_id=1006103801,
-                       caption=f'🙎‍♂️ Клиент: @{message.from_user.username}\n'
-                               f'🔗 Ссылка на товар: {data.get("link")}\n'
-                               f'🧩 Размер: {data.get("size")}\n'
-                               f'💴 Стоимость товара в Юанях: {data.get("price")}¥\n'
-                               f'💳 Итоговая стоимость заказа: {res}₽\n'
-                               f'📊 Курс: {cours}\n\n'
-                               f'🚚 Информация по доставке:\n\n'
-                               f'Тип: {"<b><u>Быстрая</u></b>" if data.get("delivery") == "fast" else "<b>Обычная</b>"}\n\n'
-                               f'{message.text}',
-                       photo=data.get('photo_id'),
-                       reply_markup=ikb_sign(order_id, res),
-                       parse_mode='HTML')
-        await bot.send_photo(chat_id=6773782194,
-                             caption=f'🙎‍♂️ Клиент: @{message.from_user.username}\n'
-                                     f'🔗 Ссылка на товар: {data.get("link")}\n'
-                                     f'🧩 Размер: {data.get("size")}\n'
-                                     f'💴 Стоимость товара в Юанях: {data.get("price")}¥\n'
-                                     f'💳 Итоговая стоимость заказа: {res}₽\n'
-                                     f'📊 Курс: {cours}\n\n'
-                                     f'Информация по доставке:\n'
-                                     f'{message.text}',
-                             photo=data.get('photo_id'),
-                             reply_markup=ikb_sign(order_id, res),
-                             parse_mode='HTML')
+        total_price = 0
+        for item in basket_list:
+            item_price = int(item["price"])
+            comission_data = get_price_comission(item["kat"])[0]
+            comission = comission_data[0]
+            fast_comiss = comission_data[2]
+
+            # если 3 или более товаров, фиксированная часть комиссии 750, иначе 1000
+            fixed_fee = 750 if len(basket_list) >= 3 else 1000
+
+            if item["delivery"] == 'fast':
+                res = int(item_price * cours + fixed_fee + fast_comiss)
+            else:
+                res = int(item_price * cours + fixed_fee + comission)
+
+            item['res_rub'] = res
+            total_price += res
+
+        caption = ""
+        for i in basket_list:
+            caption += (f'🔗 Ссылка на товар: {i["link"]}\n'
+                        f'🧩 Размер: {i["size"]}\n'
+                        f'💴 Стоимость товара в Юанях: {i["price"]}¥\n'
+                        f'💳 Итоговая стоимость: {i["res_rub"]}₽\n\n')
+
+        caption += (f'🚚 Вид доставки: {"Быстрая" if basket_list[-1]["delivery"] == "fast" else "Обычная"}\n\n'
+                    f'Информация от клиента:\n{message.text}\n\n'
+                    f'Сумма к оплате: <b>{total_price}</b>₽')
+        order_id = await add_order([message.from_user.id, message.from_user.username, res, total_price, comission, 0])
+
+        file_ids = [i["photo_id"] for i in basket_list if "photo_id" in i]
+
+        # отправляем админам
+        for admin_id in [1006103801, 6773782194]:
+            if len(file_ids) > 1:
+                await send_album(bot, admin_id, file_ids)
+                await bot.send_message(
+                    chat_id=admin_id,
+                    text=caption,
+                    disable_web_page_preview=True,
+                    reply_markup=ikb_sign(order_id, total_price),
+                    parse_mode='HTML'
+                )
+            else:
+                await bot.send_photo(
+                    chat_id=admin_id,
+                    caption=caption,
+                    photo=file_ids[0],
+                    reply_markup=ikb_sign(order_id, total_price),
+                    parse_mode='HTML'
+                )
+
+        # очищаем состояние
         await state.clear()
     else:
         await message.answer('Ваше сообщение не соответствует нужному формату, попробуйте ещё раз!')
+
 
 
 @dp.callback_query(lambda c: c.data.startswith("id_"))
@@ -304,8 +413,8 @@ async def order_kat(callback: CallbackQuery, state: FSMContext):
     data = await get_payment_data_by_id(id)
     await callback.message.answer(f'Заказ подтверждён!\n\n'
                                   f'‍🙎‍♂️ Клиент: @{user_info[2]}\n'
-                                  f'💸 Сумма отображаемая у клиента: {user_info[3]}₽\n'
-                                  f'💰 Сумма к оплате: {res}₽')
+                                  f'💸 Сумма отображаемая у клиента: {user_info[4]}₽\n'
+                                  f'💰 Сумма к оплате: {user_info[4]}₽')
     await bot.send_message(chat_id=int(user_info[1]),
                            text='🚨 Убедительная просьба, будьте предельно внимательны на этапе оплаты, сверяйте СУММУ, ИМЯ и БАНК получателя!')
     await bot.send_message(chat_id=int(user_info[1]),
@@ -314,7 +423,7 @@ async def order_kat(callback: CallbackQuery, state: FSMContext):
                                 f'<code>📲 {data[1]}</code>\n'
                                 f'🏦 {data[0]}\n'
                                 f'👤 {data[3]}\n\n'
-                                f'К оплате: <b>{res}₽</b>\n\n'
+                                f'К оплате: <b>{user_info[4]}₽</b>\n\n'
                                 f'После оплаты отправьте чек в PDF формате, пожалуйста\n'
                                 f'(Убедительная просьба не переходить в другие меню бота, пока не отправите чек. '
                                 f'Чек отправляйте просто после этого сообщения. Спасибо!)',
@@ -324,7 +433,7 @@ async def order_kat(callback: CallbackQuery, state: FSMContext):
         user_id=int(user_info[1]),
         bot_id=bot.id
     ))
-    await fsm_context.update_data(user=user_info[2], sum=user_info[3])
+    await fsm_context.update_data(user=user_info[2], sum=user_info[4])
     await fsm_context.set_state(Client.check)
 
 
@@ -379,7 +488,7 @@ async def check(message: Message, state: FSMContext):
                                 document=file_id,
                                 caption=f'‍🙎‍♂️ Клиент: @{data.get("user")}\n'
                                         f'💸 Сумма отображаемая у клиента: {data.get("sum")}₽')
-        await message.answer("Чек успешно отправлен.",
+        await message.answer("Чек успешно отправлен!",
                              reply_markup=ikb_come_home())
         await state.clear()
     else:
