@@ -136,6 +136,7 @@ async def quide(callback: CallbackQuery, state: FSMContext):
 async def order_kat(callback: CallbackQuery, state: FSMContext):
     photo = FSInputFile("media/example.PNG")
     global basket
+    await state.update_data(username=callback.from_user.username)
     await state.update_data(kat=callback.data[5:])
     basket["kat"] = callback.data[5:]
     await callback.message.delete()
@@ -224,6 +225,7 @@ async def send_album(bot, chat_id: int, file_ids: list[str]):
 async def price(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     current_basket = {
+        "username": data.get("username"),
         "kat": data.get("kat"),
         "photo_id": data.get("photo_id"),
         "link": data.get("link"),
@@ -260,12 +262,13 @@ async def price(callback: CallbackQuery, state: FSMContext):
         total_price += res
 
     # формируем текст заказа
-    caption = ""
+    caption = ''
     for i in basket_list:
         caption += (f'🔗 Ссылка на товар: {i["link"]}\n'
                     f'🧩 Размер: {i["size"]}\n'
                     f'💴 Стоимость товара в Юанях: {i["price"]}¥\n'
-                    f'💳 Итоговая стоимость: {i["res_rub"]}₽\n\n')
+                    f'💳 Итоговая стоимость: {i["res_rub"]}₽\n'
+                    f'➖➖➖➖➖➖➖➖➖➖➖\n')
 
     caption += (f'🚚 Вид доставки: {"Быстрая" if basket_list[-1]["delivery"] == "fast" else "Обычная"}\n'
                 f'💳 Общая стоимость заказа: {total_price}₽\n\n'
@@ -333,7 +336,6 @@ async def result(message: Message, state: FSMContext):
             reply_markup=ikb_come_home(),
             parse_mode='HTML'
         )
-
         data = await state.get_data()
         basket_list = data.get("basket", [])
 
@@ -357,12 +359,13 @@ async def result(message: Message, state: FSMContext):
             item['res_rub'] = res
             total_price += res
 
-        caption = ""
+        caption = f'‍🙎‍♂️ Клиент: @{basket_list[0]["username"]}\n\n'
         for i in basket_list:
             caption += (f'🔗 Ссылка на товар: {i["link"]}\n'
                         f'🧩 Размер: {i["size"]}\n'
                         f'💴 Стоимость товара в Юанях: {i["price"]}¥\n'
-                        f'💳 Итоговая стоимость: {i["res_rub"]}₽\n\n')
+                        f'💳 Итоговая стоимость: {i["res_rub"]}₽\n'
+                        f'➖➖➖➖➖➖➖➖➖➖➖\n')
 
         caption += (f'🚚 Вид доставки: {"Быстрая" if basket_list[-1]["delivery"] == "fast" else "Обычная"}\n\n'
                     f'Информация от клиента:\n{message.text}\n\n'
